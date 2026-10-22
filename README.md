@@ -53,11 +53,6 @@ Project experience reflects tools used in portfolio work, not a claim of expert 
 
 ### 03 / Selected engineering work
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/roofshift-card.svg">
-  <img src="assets/roofshift-card-light.svg" alt="RoofShift AI original conceptual project artwork, not an application screenshot" width="1200">
-</picture>
-
 #### 01 — [RoofShift AI ↗](https://github.com/rajsalonia/roofshift-ai)
 Plan rooftop solar installations and allocate a constrained budget across buildings.
 
@@ -67,11 +62,6 @@ Geospatial analysis, solar energy forecasting, and multi-building planning. Fore
 [Source](https://github.com/rajsalonia/roofshift-ai) · [Hosted website ↗](https://d2pxwgtcwn203c.cloudfront.net/)
 
 ---
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/judgeforge-card.svg">
-  <img src="assets/judgeforge-card-light.svg" alt="JudgeForge original conceptual project artwork, not an application screenshot" width="1200">
-</picture>
 
 #### 02 — [JudgeForge ↗](https://github.com/rajsalonia/JudgeForge)
 Bring hackathon submissions and isolated judging into one self-hosted workflow.
@@ -83,11 +73,6 @@ The public instance is an evaluation demo. Do not submit sensitive participant d
 
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/citygraph-card.svg">
-  <img src="assets/citygraph-card-light.svg" alt="CityGraph original conceptual project artwork, not an application screenshot" width="1200">
-</picture>
-
 #### 03 — [CityGraph ↗](https://github.com/rajsalonia/citygraph)
 Explore how infrastructure failures cascade through a simulated city.
 
@@ -97,11 +82,6 @@ Graph modeling and risk-aware routing with synthetic scenarios; not a live emerg
 [Source](https://github.com/rajsalonia/citygraph) · [Hosted interface ↗](https://citygraph-intelligence.vercel.app/)
 
 ---
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/boloai-card.svg">
-  <img src="assets/boloai-card-light.svg" alt="BoloAI original conceptual project artwork, not an application screenshot" width="1200">
-</picture>
 
 #### 04 — [BoloAI ↗](https://github.com/rajsalonia/BoloAI)
 Explore multilingual, voice-first assistance in Hindi, Hinglish, and English.
