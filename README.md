@@ -32,7 +32,7 @@ I'm a student software engineer building backend services, thoughtful APIs, and 
 | **B.Tech CSE · Class of 2028**<br>Bhagwan Parshuram Institute of Technology, Delhi | Deepening backend design, microservices, and cloud fundamentals |
 | **Software Engineering Intern**<br>Dexpert Systems · April–July 2026 | Seeking software engineering, backend, applied AI, and cloud internships |
 
-## Skills
+### 02 / Skills
 
 | Area | Core stack |
 | :--- | :--- |
