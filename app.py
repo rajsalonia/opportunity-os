@@ -71,7 +71,7 @@ def homepage():return render_template("index.html")
 @app.get("/health")
 def health():return {"ok":True,"storage":"postgres" if "postgres" in url else "ephemeral"}
 @app.get("/api/session")
-def whoami():return {"authenticated":bool(session.get("owner")),"storage":"persistent_postgres" if "postgres" in url else "temporary_sqlite"}
+def whoami():return {"authenticated":bool(session.get("owner")),"storage":"persistent_postgres" if "postgres" in url else "temporary_sqlite","gmail_requires_user_setup":True}
 @app.post("/api/login")
 def login():
  if not pw:return jsonify(error="APP_PASSWORD not configured"),503
@@ -199,3 +199,323 @@ def export():
  out=io.StringIO(); keys=["company","title","location","url","provider","status","score","deadline","notes"]
  w=csv.DictWriter(out,fieldnames=keys,extrasaction="ignore");w.writeheader();w.writerows(rows)
  return send_file(io.BytesIO(out.getvalue().encode()),mimetype="text/csv",as_attachment=True,download_name="opportunity-os.csv")
+
+
+# -----------------------------------------------------------------------
+# Opportunity OS integrations: searchable sources, CSV/XLSX contacts,
+# original-resume vault, and explicitly approved Gmail sending.
+# External OAuth credentials and DB URL are configured only in Render env.
+# -----------------------------------------------------------------------
+import base64
+import mimetypes
+import time
+from email.message import EmailMessage
+from urllib.parse import urlencode
+from flask import redirect, url_for
+from sqlalchemy import MetaData, Table, Column, String, Text, DateTime, LargeBinary
+from cryptography.fernet import Fernet, InvalidToken
+
+_extra_meta=MetaData()
+resume_table=Table("private_documents",_extra_meta,
+ Column("id",String(40),primary_key=True),
+ Column("name",String(250)),
+ Column("content",LargeBinary),
+ Column("hash",String(64)),
+ Column("updated",String(50)))
+oauth_table=Table("oauth_tokens",_extra_meta,
+ Column("id",String(40),primary_key=True),
+ Column("token",LargeBinary),
+ Column("updated",String(50)))
+email_table=Table("email_log",_extra_meta,
+ Column("id",String(40),primary_key=True),
+ Column("job_id",String(64)),
+ Column("recipient",String(320)),
+ Column("subject",Text),
+ Column("status",String(40)),
+ Column("gmail_id",String(320)),
+ Column("sent_at",String(50)))
+source_table=Table("job_sources",_extra_meta,
+ Column("id",String(180),primary_key=True),
+ Column("provider",String(30)),Column("slug",String(100)),Column("name",String(200)))
+_extra_meta.create_all(db)
+SETTINGS_SECRET=os.getenv("SESSION_SECRET","")
+FERNET=Fernet(base64.urlsafe_b64encode(hashlib.sha256(SETTINGS_SECRET.encode()).digest())) if SETTINGS_SECRET else None
+GMAIL_SCOPES="https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send"
+def has_persistent_db():
+ return url.startswith("postgresql+psycopg")
+def persistent_only():
+ if not has_persistent_db():
+  abort(503, description="Persistent database not connected yet; confidential uploads and OAuth are disabled.")
+def google_ready():
+ return bool(os.getenv("GOOGLE_CLIENT_ID") and os.getenv("GOOGLE_CLIENT_SECRET") and FERNET and has_persistent_db())
+def get_token():
+ if not google_ready():return None
+ with db.connect() as c:
+  row=c.execute(oauth_table.select().where(oauth_table.c.id=="gmail")).mappings().first()
+ if not row:return None
+ try:return __import__("json").loads(FERNET.decrypt(bytes(row["token"])).decode())
+ except (InvalidToken,ValueError):return None
+def set_token(value):
+ persistent_only()
+ blob=FERNET.encrypt(__import__("json").dumps(value).encode())
+ with db.begin() as c:
+  c.execute(oauth_table.delete().where(oauth_table.c.id=="gmail"))
+  c.execute(oauth_table.insert().values(id="gmail",token=blob,updated=now()))
+def access_token():
+ token=get_token()
+ if not token:return None
+ if float(token.get("expires_at",0))>time.time()+90:return token.get("access_token")
+ refresh=token.get("refresh_token")
+ if not refresh:return None
+ res=requests.post("https://oauth2.googleapis.com/token",data={
+   "client_id":os.getenv("GOOGLE_CLIENT_ID"),"client_secret":os.getenv("GOOGLE_CLIENT_SECRET"),
+   "refresh_token":refresh,"grant_type":"refresh_token"},timeout=15)
+ if res.status_code>=400:return None
+ new=res.json()
+ token["access_token"]=new["access_token"]
+ token["expires_at"]=time.time()+int(new.get("expires_in",3600))
+ set_token(token)
+ return token["access_token"]
+def gmail_req(method,path,payload=None):
+ token=access_token()
+ if not token:abort(503,description="Connect Gmail from the dashboard first.")
+ headers={"Authorization":"Bearer "+token}
+ r=requests.request(method,"https://gmail.googleapis.com/gmail/v1/users/me/"+path,
+  headers=headers,json=payload,timeout=20)
+ if r.status_code>=400:
+  abort(502,description="Gmail API returned status "+str(r.status_code))
+ return r.json()
+@app.get("/api/integrations")
+def integrations():
+ owner()
+ with db.connect() as c:
+  row=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+ return {
+  "persistent":has_persistent_db(),
+  "gmail_available":google_ready(),
+  "gmail_connected":bool(get_token()),
+  "resume_uploaded":bool(row),
+  "resume_filename":row["name"] if row else None,
+  "resume_sha256":row["hash"] if row else None,
+  "email_requires_review":True,
+  "auto_ats_apply":False,
+  "data_warning":"" if has_persistent_db() else "No persistent DB URL. Avoid importing contacts/resume before configuration."
+ }
+@app.get("/api/sources")
+def get_sources():
+ owner()
+ with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(source_table.select().order_by(source_table.c.name))]
+ return {"sources":rows,"default_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in boards]}
+@app.post("/api/sources")
+def put_source():
+ check_origin();body=request.get_json(silent=True) or {}
+ provider=str(body.get("provider","")).lower()
+ slug=str(body.get("slug","")).lower().strip()
+ name=str(body.get("name","")).strip()[:100]
+ if provider not in ("greenhouse","lever","ashby") or not re.fullmatch(r"[a-z0-9_-]{2,90}",slug) or not name:
+  return {"error":"Valid provider, board slug and company name required"},422
+ key=provider+":"+slug
+ with db.begin() as c:
+  c.execute(source_table.delete().where(source_table.c.id==key))
+  c.execute(source_table.insert().values(id=key,provider=provider,slug=slug,name=name))
+ return {"ok":True}
+@app.delete("/api/sources/<path:source_id>")
+def remove_source(source_id):
+ check_origin()
+ with db.begin() as c:c.execute(source_table.delete().where(source_table.c.id==source_id))
+ return {"ok":True}
+
+# This is a separate endpoint so the existing original-board refresh remains usable.
+@app.post("/api/refresh/extended")
+def refresh_extended():
+ check_origin()
+ with db.connect() as c:
+  rows=[(r["provider"],r["slug"],r["name"]) for r in c.execute(source_table.select()).mappings()]
+ additional=[("ashby","ramp","Ramp"),("ashby","linear","Linear"),
+             ("ashby","perplexity","Perplexity"),("ashby","openai","OpenAI")]
+ batch=list({(p,s):(p,s,n) for p,s,n in (boards+rows+additional)}.values())[:35]
+ def get_board(entry):
+  provider,slug,company=entry
+  if provider in ("greenhouse","lever"):return collect(entry)
+  address="https://api.ashbyhq.com/posting-api/job-board/"+slug
+  try:
+   result=requests.get(address,timeout=10,headers={"User-Agent":"OpportunityOS/1.1"})
+   result.raise_for_status()
+   posts=result.json().get("jobs",[])
+   found=[]
+   for post in posts[:800]:
+    title=str(post.get("title") or "")
+    if not (roles.search(title) and technical.search(title)):continue
+    desc=re.sub("<[^>]*>"," ",str(post.get("descriptionHtml") or post.get("descriptionPlain") or ""))[:5000]
+    loc=str(post.get("location") or "")
+    link=str(post.get("jobUrl") or post.get("applyUrl") or "")
+    if not secure_url(link):continue
+    score,warning=rank(title,desc,loc)
+    found.append({"id":hashlib.sha256(link.encode()).hexdigest()[:32],
+     "company":company,"title":title[:200],"location":loc[:200],
+     "url":link,"provider":"ashby","description":desc,"score":score,"warnings":warning})
+   return found,None
+  except Exception:return [],company+" unavailable"
+ with ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(get_board,batch))
+ added=0;errors=[]
+ with db.begin() as c:
+  for rows,error in results:
+   if error:errors.append(error)
+   for r in rows:
+    already=c.execute(text("SELECT 1 FROM jobs WHERE id=:id"),{"id":r["id"]}).first()
+    if not already:added+=1
+    c.execute(text("""INSERT INTO jobs(id,company,title,location,url,provider,description,score,warnings,status,notes,deadline,discovered,updated)
+    VALUES(:id,:company,:title,:location,:url,:provider,:description,:score,:warnings,'Discovered','','',:ts,:ts)
+    ON CONFLICT(id) DO UPDATE SET title=excluded.title,location=excluded.location,description=excluded.description,
+    score=excluded.score,warnings=excluded.warnings,updated=excluded.updated"""),r|{"ts":now()})
+ return {"new":added,"checked":len(batch),"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
+
+@app.post("/api/contacts/import")
+def import_hr_contacts():
+ check_origin();persistent_only()
+ f=request.files.get("file")
+ if not f:return {"error":"Upload an XLSX or CSV file"},422
+ content=f.read(4_000_001)
+ if len(content)>4_000_000:return {"error":"Maximum file size is 4 MB"},413
+ filename=(f.filename or "").lower()
+ if filename.endswith(".csv"):
+  try: rows=list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"))))
+  except Exception:return {"error":"CSV must be UTF-8"},422
+ elif filename.endswith(".xlsx"):
+  from openpyxl import load_workbook
+  try:
+   book=load_workbook(io.BytesIO(content),read_only=True,data_only=True)
+   rows=[]
+   for sheet in book.worksheets:
+    it=sheet.iter_rows(values_only=True)
+    headers=next(it,[])
+    for cells in it:rows.append(dict(zip([str(h or "").strip() for h in headers],cells)))
+    if len(rows)>6000:break
+  except Exception:return {"error":"Invalid Excel workbook"},422
+ else:return {"error":"Only .csv and .xlsx files are supported"},422
+ inserted=0;skipped=0
+ with db.begin() as c:
+  for item in rows[:6000]:
+   lower={str(k or "").lower().strip():str(v or "").strip() for k,v in item.items()}
+   email=next((lower[k] for k in ("email","email address","hr email","contact email","work email") if lower.get(k)),"").lower()[:250]
+   company=next((lower[k] for k in ("company","company name","organization","employer") if lower.get(k)),"")[:150]
+   if not company or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",email):
+    skipped+=1;continue
+   if c.execute(text("SELECT 1 FROM contacts WHERE lower(email)=:email"),{"email":email}).first():
+    skipped+=1;continue
+   c.execute(text("INSERT INTO contacts(id,company,name,email,role,notes) VALUES(:id,:company,:name,:email,:role,:notes)"),
+    {"id":secrets.token_hex(16),"company":company,"email":email,
+     "name":lower.get("name",lower.get("hr name",""))[:150],
+     "role":lower.get("role","")[:150],"notes":""})
+   inserted+=1
+ return {"imported":inserted,"skipped":skipped,"total_rows":min(len(rows),6000)}
+
+@app.post("/api/resume")
+def upload_original_resume():
+ check_origin();persistent_only()
+ f=request.files.get("file")
+ if not f or not f.filename.lower().endswith(".pdf"):return {"error":"Upload original PDF resume"},422
+ data=f.read(3_000_001)
+ if not data.startswith(b"%PDF-") or len(data)>3_000_000:return {"error":"Invalid PDF or file over 3MB"},422
+ name="Raj_Salonia_Resume-2.pdf"
+ digest=hashlib.sha256(data).hexdigest()
+ with db.begin() as c:
+  c.execute(resume_table.delete().where(resume_table.c.id=="original"))
+  c.execute(resume_table.insert().values(id="original",name=name,content=data,hash=digest,updated=now()))
+ return {"ok":True,"sha256":digest,"bytes":len(data),"note":"Stored byte-for-byte unchanged."}
+
+@app.get("/api/resume/download")
+def get_original_resume():
+ owner()
+ with db.connect() as c:row=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+ if not row:abort(404)
+ from flask import send_file as flask_send_file
+ return flask_send_file(io.BytesIO(bytes(row["content"])),as_attachment=True,download_name=row["name"],mimetype="application/pdf")
+
+@app.get("/api/gmail/connect")
+def gmail_connect():
+ owner();persistent_only()
+ if not google_ready():return {"error":"Google OAuth credentials not configured in Render environment"},503
+ state=secrets.token_urlsafe(32)
+ session["google_oauth_state"]=state
+ redirect_uri=url_for("gmail_callback",_external=True,_scheme="https")
+ query=urlencode({"client_id":os.environ["GOOGLE_CLIENT_ID"],"redirect_uri":redirect_uri,"response_type":"code",
+                  "scope":GMAIL_SCOPES,"access_type":"offline","prompt":"consent","state":state})
+ return redirect("https://accounts.google.com/o/oauth2/v2/auth?"+query)
+@app.get("/auth/google/callback")
+def gmail_callback():
+ owner()
+ state=request.args.get("state","")
+ if not state or not hmac.compare_digest(state,session.pop("google_oauth_state","")):abort(403)
+ code=request.args.get("code")
+ if not code:abort(400)
+ uri=url_for("gmail_callback",_external=True,_scheme="https")
+ response=requests.post("https://oauth2.googleapis.com/token",data={
+ "client_id":os.environ["GOOGLE_CLIENT_ID"],"client_secret":os.environ["GOOGLE_CLIENT_SECRET"],
+ "code":code,"redirect_uri":uri,"grant_type":"authorization_code"},timeout=20)
+ if response.status_code>=400:abort(502,description="Google authorization could not be completed")
+ t=response.json()
+ old=get_token() or {}
+ if "refresh_token" not in t and old.get("refresh_token"):t["refresh_token"]=old["refresh_token"]
+ t["expires_at"]=time.time()+int(t.get("expires_in",3600))
+ set_token(t)
+ return redirect("/?gmail=connected")
+@app.get("/api/gmail/updates")
+def gmail_updates():
+ owner()
+ result=gmail_req("GET","messages?q="+__import__("urllib.parse",fromlist=["quote"]).quote(
+  'newer_than:21d ("application" OR "interview" OR "assessment" OR "internship" OR "recruitment") -from:amazon.com')+"&maxResults=40")
+ def scan_item(item):
+  try:
+   mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date")
+   headers={x["name"].lower():x["value"] for x in mail.get("payload",{}).get("headers",[])}
+   title=headers.get("subject","")
+   sample=mail.get("snippet","")[:250]
+   s=(title+" "+sample).lower()
+   if any(y in s for y in ("rejection","unfortunately","not moving forward","not selected","other candidates")):stage="Possible rejection"
+   elif any(y in s for y in ("interview","schedule a call","technical round")):stage="Possible interview"
+   elif any(y in s for y in ("assessment","coding challenge","online test")):stage="Possible assessment"
+   else:stage="Needs review"
+   return {"id":item["id"],"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage}
+  except Exception:return None
+ result_items=[x for x in (scan_item(i) for i in result.get("messages",[])[:40]) if x]
+ return {"messages":result_items,"note":"Labels are hints, not verified outcomes. No reply was sent."}
+@app.post("/api/gmail/send")
+def gmail_send_reviewed():
+ check_origin();persistent_only()
+ body=request.get_json(silent=True) or {}
+ if body.get("reviewed_and_confirmed") is not True:
+  return {"error":"Explicit review and confirmation required"},422
+ recipient=str(body.get("to","")).strip()[:320]
+ subject=str(body.get("subject","")).strip()[:250]
+ message=str(body.get("body","")).strip()[:10000]
+ jid=str(body.get("job_id",""))[:64]
+ if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",recipient) or not subject or len(message)<30:
+  return {"error":"Recipient, subject and message must be valid"},422
+ today=now()[:10]
+ with db.connect() as c:
+  sent=c.scalar(text("SELECT count(*) FROM email_log WHERE status='sent' AND sent_at LIKE :today"),{"today":today+"%"})
+  dupe=c.execute(text("SELECT 1 FROM email_log WHERE recipient=:rec AND subject=:sub AND status='sent'"),
+    {"rec":recipient,"sub":subject}).first()
+ if sent>=10:return {"error":"Daily 10-email safety limit reached"},429
+ if dupe:return {"error":"This exact email was already sent. Duplicate blocked."},409
+ email=EmailMessage()
+ email["To"]=recipient;email["Subject"]=subject
+ email.set_content(message)
+ if body.get("attach_original_resume"):
+  with db.connect() as c:doc=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+  if not doc:return {"error":"Upload your original resume first"},409
+  data=bytes(doc["content"])
+  email.add_attachment(data,maintype="application",subtype="pdf",filename=doc["name"])
+ encoded=base64.urlsafe_b64encode(email.as_bytes()).decode().rstrip("=")
+ try:resp=gmail_req("POST","messages/send",{"raw":encoded})
+ except Exception:return {"error":"Gmail rejected the send request; check your connection. No confirmed sent status."},502
+ with db.begin() as c:
+  c.execute(email_table.insert().values(id=secrets.token_hex(16),job_id=jid,recipient=recipient,
+   subject=subject,status="sent",gmail_id=resp.get("id",""),sent_at=now()))
+ return {"sent":True,"gmail_message_id":resp.get("id"),"note":"Email was sent only after your explicit confirmation."}
+@app.get("/api/gmail/sent")
+def gmail_sent():
+ owner()
+ with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(email_table.select().order_by(email_table.c.sent_at.desc()).limit(100)).mappings()]
+ return {"emails":rows}
