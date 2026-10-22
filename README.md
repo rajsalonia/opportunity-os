@@ -93,7 +93,10 @@ Provider integrations are configurable; the demo can use fallback/mock adapters.
 My actual contribution history lives on [GitHub's contribution graph](https://github.com/rajsalonia?tab=overview) and [public repository activity](https://github.com/rajsalonia?tab=repositories).
 
 <!-- SNAKE:START -->
-Contribution animation is being prepared. [View the native contribution graph ↗](https://github.com/rajsalonia?tab=overview)
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rajsalonia/rajsalonia/output/snake-dark.svg">
+<img src="https://raw.githubusercontent.com/rajsalonia/rajsalonia/output/snake.svg" alt="Animated contribution graph — native activity link above provides a fallback" width="960">
+</picture>
 <!-- SNAKE:END -->
 
 <sub>The animation follows GitHub contribution data. No estimated streaks, rankings, or invented activity totals.</sub>
