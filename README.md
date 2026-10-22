@@ -32,24 +32,17 @@ I'm a student software engineer building backend services, thoughtful APIs, and 
 | **B.Tech CSE · Class of 2028**<br>Bhagwan Parshuram Institute of Technology, Delhi | Deepening backend design, microservices, and cloud fundamentals |
 | **Software Engineering Intern**<br>Dexpert Systems · April–July 2026 | Seeking software engineering, backend, applied AI, and cloud internships |
 
-### 02 / Engineering toolkit
+## Skills
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/toolkit-background-dark.svg">
-  <img src="assets/toolkit-background-light.svg" alt="Abstract illustrated technology background for backend engineering and applied AI" width="1200">
-</picture>
-
-
-Project experience reflects tools used in portfolio work, not a claim of expert proficiency.
-
-| Area | Project experience |
+| Area | Core stack |
 | :--- | :--- |
-| **Languages** | Python · JavaScript · TypeScript · SQL |
-| **Backend** | FastAPI · REST APIs · Pydantic · SQLAlchemy · SQLite |
-| **Frontend** | React · HTML · CSS · Tailwind CSS |
-| **AI & data** | Agentic AI workflows · NumPy · Pandas · scikit-learn · NetworkX |
-| **Delivery** | Git · Docker · GitHub Actions · testing |
-| **Developing further** | Java · C++ · Nginx · AWS fundamentals · microservice architecture |
+| **Languages** | ![Python](https://img.shields.io/badge/Python-161B22?style=flat-square&logo=python&logoColor=74B8F0) ![Java](https://img.shields.io/badge/Java-161B22?style=flat-square&logo=openjdk&logoColor=E6A86A) ![C++](https://img.shields.io/badge/C%2B%2B-161B22?style=flat-square&logo=cplusplus&logoColor=80B8FF) ![JavaScript](https://img.shields.io/badge/JavaScript-161B22?style=flat-square&logo=javascript&logoColor=F7DF1E) ![TypeScript](https://img.shields.io/badge/TypeScript-161B22?style=flat-square&logo=typescript&logoColor=74B8F0) ![SQL](https://img.shields.io/badge/SQL-161B22?style=flat-square) |
+| **Backend** | ![FastAPI](https://img.shields.io/badge/FastAPI-161B22?style=flat-square&logo=fastapi&logoColor=65D8C0) ![REST APIs](https://img.shields.io/badge/REST%20APIs-161B22?style=flat-square) ![Pydantic](https://img.shields.io/badge/Pydantic-161B22?style=flat-square&logo=pydantic&logoColor=F38AA8) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-161B22?style=flat-square&logo=sqlalchemy&logoColor=ED9898) ![SQLite](https://img.shields.io/badge/SQLite-161B22?style=flat-square&logo=sqlite&logoColor=83C6E8) |
+| **Frontend** | ![React](https://img.shields.io/badge/React-161B22?style=flat-square&logo=react&logoColor=61DAFB) ![HTML](https://img.shields.io/badge/HTML-161B22?style=flat-square&logo=html5&logoColor=EE967E) ![CSS](https://img.shields.io/badge/CSS-161B22?style=flat-square&logo=css&logoColor=9DB3FA) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-161B22?style=flat-square&logo=tailwindcss&logoColor=6CD9EA) |
+| **AI & Data** | ![NumPy](https://img.shields.io/badge/NumPy-161B22?style=flat-square&logo=numpy&logoColor=89B7E5) ![Pandas](https://img.shields.io/badge/Pandas-161B22?style=flat-square&logo=pandas&logoColor=C3AEF2) ![scikit-learn](https://img.shields.io/badge/scikit--learn-161B22?style=flat-square&logo=scikitlearn&logoColor=EEB67B) ![NetworkX](https://img.shields.io/badge/NetworkX-161B22?style=flat-square&logo=networkx&logoColor=A9CAE8) ![Agentic AI workflows](https://img.shields.io/badge/Agentic%20AI%20workflows-161B22?style=flat-square) |
+| **Cloud & DevOps** | ![AWS](https://img.shields.io/badge/AWS-161B22?style=flat-square) ![Docker](https://img.shields.io/badge/Docker-161B22?style=flat-square&logo=docker&logoColor=74B8F0) ![Git](https://img.shields.io/badge/Git-161B22?style=flat-square&logo=git&logoColor=F29885) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-161B22?style=flat-square&logo=githubactions&logoColor=9ABFFF) ![Nginx](https://img.shields.io/badge/Nginx-161B22?style=flat-square&logo=nginx&logoColor=8DD4A0) |
+
+<sub>Project experience and ongoing learning. Currently developing Java, C++, AWS fundamentals, and Nginx.</sub>
 
 ### 03 / Selected engineering work
 
