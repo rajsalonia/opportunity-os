@@ -3,11 +3,17 @@
 # Hi, I'm Raj Salonia 👋
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img src="assets/hero-light.svg" alt="Raj Salonia — building useful software, learning deeply" width="960">
+  <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcset="assets/cinematic-hero-dark.png">
+  <source media="(prefers-reduced-motion: reduce)" srcset="assets/cinematic-hero-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/cinematic-hero-dark.webp">
+  <img src="assets/cinematic-hero-light.webp" alt="Raj Salonia — student engineer, backend focus, practical AI, cloud curiosity. Open to Software Engineering Internships." width="1200">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-motion-dark.svg">
+  <img src="assets/hero-motion-light.svg" alt="Python backend developer; building with FastAPI; exploring AI and cloud architecture" width="1200">
 </picture>
 
-**Software Engineering · Python Backend · Practical AI**
+**Student Software Engineer · Python Backend · Practical AI**
 
 `Open to Software Engineering Internships`
 
@@ -55,7 +61,7 @@ Project experience reflects tools used in portfolio work, not a claim of expert 
 #### 01 — [RoofShift AI ↗](https://github.com/rajsalonia/roofshift-ai)
 Plan rooftop solar installations and allocate a constrained budget across buildings.
 
-**FastAPI · React · TypeScript · mathematical optimization · tests · AWS deployment work**  
+**FastAPI · React · TypeScript · mathematical optimization · tests · AWS deployment work**<br>
 Geospatial analysis, solar energy forecasting, and multi-building planning. Forecasts depend on modeled assumptions.
 
 [Source](https://github.com/rajsalonia/roofshift-ai) · [Hosted website ↗](https://d2pxwgtcwn203c.cloudfront.net/)
@@ -70,7 +76,7 @@ Geospatial analysis, solar energy forecasting, and multi-building planning. Fore
 #### 02 — [JudgeForge ↗](https://github.com/rajsalonia/JudgeForge)
 Bring hackathon submissions and isolated judging into one self-hosted workflow.
 
-**Python · FastAPI · SQLite · role-based permissions · statistical score normalization**  
+**Python · FastAPI · SQLite · role-based permissions · statistical score normalization**<br>
 The public instance is an evaluation demo. Do not submit sensitive participant data or confidential files.
 
 [Source](https://github.com/rajsalonia/JudgeForge) · [Evaluation demo ↗](https://judgeforge.onrender.com/)
@@ -85,7 +91,7 @@ The public instance is an evaluation demo. Do not submit sensitive participant d
 #### 03 — [CityGraph ↗](https://github.com/rajsalonia/citygraph)
 Explore how infrastructure failures cascade through a simulated city.
 
-**FastAPI · React · NetworkX · Leaflet · GIS visualization**  
+**FastAPI · React · NetworkX · Leaflet · GIS visualization**<br>
 Graph modeling and risk-aware routing with synthetic scenarios; not a live emergency-management system.
 
 [Source](https://github.com/rajsalonia/citygraph) · [Hosted interface ↗](https://citygraph-intelligence.vercel.app/)
@@ -100,29 +106,21 @@ Graph modeling and risk-aware routing with synthetic scenarios; not a live emerg
 #### 04 — [BoloAI ↗](https://github.com/rajsalonia/BoloAI)
 Explore multilingual, voice-first assistance in Hindi, Hinglish, and English.
 
-**Python · FastAPI · conversational memory · tool orchestration**  
+**Python · FastAPI · conversational memory · tool orchestration**<br>
 Provider integrations are configurable; the demo can use fallback/mock adapters. Live AI, speech, telephony, and SMS providers are not independently confirmed.
 
 [Source](https://github.com/rajsalonia/BoloAI) · [Demo ↗](https://boloai-web.onrender.com/)
 
-<sub>Hosted links come from the project repositories. Availability and complete hosted user flows have not been independently confirmed.</sub>
+<sub>Hosted links are portfolio demonstrations; availability checks do not verify complete user flows or external provider integrations.</sub>
 
 ### 04 / More to explore
 
 | Project | Focus |
 | :--- | :--- |
-| [**ReviewLens ↗**](https://github.com/rajsalonia/ReviewLens) | Traceable evidence and conflicting review perspectives · React, TypeScript, FastAPI |
-| [**Proofly ↗**](https://github.com/rajsalonia/document-forgery-ai) | Explainable document risk indicators · Python, FastAPI, React, Docker |
+| [**ReviewLens ↗**](https://github.com/rajsalonia/ReviewLens) | Traceable evidence and conflicting review perspectives · React, TypeScript, FastAPI · [Demo ↗](https://review-lens-black.vercel.app/) |
+| [**Proofly ↗**](https://github.com/rajsalonia/document-forgery-ai) | Explainable document risk indicators · Python, FastAPI, React, Docker · [Demo ↗](https://proofly-app.onrender.com/) |
 
-### 05 / Engineering journey
-
-**Worked with**  
-Python → Backend APIs → Databases → practical AI applications
-
-**Learning & deepening**  
-Microservices → Docker & CI/CD → AWS Cloud → reliable Applied AI Systems
-
-### 06 / Building in public
+### 05 / Building in public
 
 My actual contribution history lives on [GitHub's contribution graph](https://github.com/rajsalonia?tab=overview) and [public repository activity](https://github.com/rajsalonia?tab=repositories).
 
@@ -134,6 +132,14 @@ My actual contribution history lives on [GitHub's contribution graph](https://gi
 <!-- SNAKE:END -->
 
 <sub>The animation follows GitHub contribution data. No estimated streaks, rankings, or invented activity totals.</sub>
+
+### 06 / Engineering journey
+
+**Worked with**<br>
+Python → Backend APIs → Databases → practical AI applications
+
+**Learning & deepening**<br>
+Microservices → Docker & CI/CD → AWS Cloud → reliable Applied AI Systems
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/footer-background-dark.svg">
