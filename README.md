@@ -8,7 +8,7 @@ B.Tech Computer Science & Engineering, **Bhagwan Parshuram Institute of Technolo
 
 Former Software Engineering Intern · **Dexpert Systems (Apr–Jul 2026)**
 
-[![GitHub](https://img.shields.io/badge/GitHub-Projects-181717?logo=github&logoColor=white)](https://github.com/rajsalonia) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rajsalonia)
+[![GitHub](https://img.shields.io/badge/GitHub-Projects-181717?logo=github&logoColor=white)](https://github.com/rajsalonia) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rajsalonia) [![Portfolio](https://img.shields.io/badge/Portfolio-Explore-2563EB?logo=vercel&logoColor=white)](https://raj-salonia-portfolio.vercel.app/)
 
 *Building useful backend services, explainable AI systems, and full-stack applications.*
 
@@ -36,18 +36,18 @@ I'm a CSE undergraduate interested in **backend engineering, REST APIs, AI-assis
 | **Engineering** | Git · GitHub Actions · Pytest · Docker · Vite |
 | **Cloud (learning)** | AWS fundamentals · CloudFront · S3 · deployment configuration |
 
-### Selected projects
+### Featured engineering projects
 
-| Project | The problem it addresses | Engineering focus |
-| --- | --- | --- |
-| **[RoofShift AI](https://github.com/rajsalonia/roofshift-ai)** | Comparing rooftop solar opportunities and allocating limited installation budgets across buildings. | FastAPI · React · solar yield modelling · budget optimization · PDF reports |
-| **[CityGraph](https://github.com/rajsalonia/citygraph)** | Understanding cascading urban infrastructure failures in simulated flood scenarios. | FastAPI · NetworkX · Leaflet · Cytoscape · risk-aware graphs |
-| **[BoloAI](https://github.com/rajsalonia/BoloAI)** | Making assisted digital workflows accessible through Hindi, Hinglish, and English voice interactions. | FastAPI · voice interfaces · configurable AI/tool integrations · provider fallbacks |
-| **[ReviewLens](https://github.com/rajsalonia/ReviewLens)** | Exploring conflicting evidence instead of relying on a single review score. | Multi-source connectors · provenance · entity resolution · React · FastAPI |
-| **[Proofly](https://github.com/rajsalonia/document-forgery-ai)** | Surfacing explainable risk indicators in documents and investment-related messages. | Python · FastAPI · document analysis · React · Docker |
-| **[JudgeForge](https://github.com/rajsalonia/JudgeForge)** | Supporting hackathon submission, evaluation, and transparent judging workflows. | FastAPI · SQLite · role-based permissions · statistical normalization |
+| Project | What it solves | Core engineering | Demo |
+| --- | --- | --- | --- |
+| **[RoofShift AI](https://github.com/rajsalonia/roofshift-ai)** | Comparing rooftop solar opportunities and allocating limited installation budgets across buildings. | FastAPI · React · solar yield modelling · budget optimization · PDF reports | [CloudFront](https://d2pxwgtcwn203c.cloudfront.net/) |
+| **[CityGraph](https://github.com/rajsalonia/citygraph)** | Understanding cascading urban infrastructure failures in simulated flood scenarios. | FastAPI · NetworkX · Leaflet · Cytoscape · risk-aware graphs | [Vercel](https://citygraph-intelligence.vercel.app/) |
+| **[BoloAI](https://github.com/rajsalonia/BoloAI)** | Making assisted digital workflows accessible through Hindi, Hinglish, and English voice interactions. | FastAPI · voice interfaces · configurable AI/tool integrations · provider fallbacks | [Render](https://boloai-web.onrender.com/) |
+| **[ReviewLens](https://github.com/rajsalonia/ReviewLens)** | Exploring conflicting evidence instead of relying on a single review score. | Multi-source connectors · provenance · entity resolution · React · FastAPI | [Vercel](https://review-lens-black.vercel.app/) |
+| **[Proofly](https://github.com/rajsalonia/document-forgery-ai)** | Surfacing explainable risk indicators in documents and investment-related messages. | Python · FastAPI · document analysis · React · Docker | [Render](https://proofly-app.onrender.com/) |
+| **[JudgeForge](https://github.com/rajsalonia/JudgeForge)** | Supporting hackathon submission, evaluation, and transparent judging workflows. | FastAPI · SQLite · role-based permissions · statistical normalization | [Render](https://judgeforge.onrender.com/) |
 
-> **Demo note:** Hosted applications are linked in project repositories where applicable. Their current uptime and full user flows have not all been independently verified. JudgeForge also supports local/self-hosted usage. Sample data and external integration fallbacks are identified in individual project READMEs.
+> **Demo note:** Demo URLs are provided for portfolio evaluation. Their continuous uptime and full user flows have not all been independently verified. JudgeForge also supports local/self-hosted usage. Sample data and external integration fallbacks are identified in individual project READMEs.
 
 ### How I work
 
@@ -56,6 +56,11 @@ I aim to make projects **understandable and maintainable**, not just visually im
 ### Currently learning
 
 `Backend design` → `API validation & testing` → `Databases & microservice patterns` → `Docker & CI` → `AWS architecture fundamentals`
+
+### Portfolio
+
+- **Personal portfolio:** [raj-salonia-portfolio.vercel.app](https://raj-salonia-portfolio.vercel.app/)
+- **Resume focus:** Backend engineering, Python/FastAPI, software engineering, and cloud fundamentals.
 
 ### Connect
 
