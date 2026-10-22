@@ -419,6 +419,9 @@ def upload_original_resume():
  if not data.startswith(b"%PDF-") or len(data)>3_000_000:return {"error":"Invalid PDF or file over 3MB"},422
  name="Raj_Salonia_Resume-2.pdf"
  digest=hashlib.sha256(data).hexdigest()
+ expected=os.getenv("ORIGINAL_RESUME_SHA256","").lower().strip()
+ if expected and digest != expected:
+  return {"error":"This is not the exact approved original resume PDF. File rejected without modification."},422
  with db.begin() as c:
   c.execute(resume_table.delete().where(resume_table.c.id=="original"))
   c.execute(resume_table.insert().values(id="original",name=name,content=data,hash=digest,updated=now()))
