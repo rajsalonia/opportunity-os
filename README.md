@@ -97,6 +97,8 @@ Provider integrations are configurable; the demo can use fallback/mock adapters.
 
 My actual contribution history lives on [GitHub's contribution graph](https://github.com/rajsalonia?tab=overview) and [public repository activity](https://github.com/rajsalonia?tab=repositories).
 
+**GitHub achievements:** [Quickdraw — awarded by GitHub](https://github.com/rajsalonia?achievement=quickdraw&tab=achievements) · [View verified achievements](https://github.com/rajsalonia?tab=achievements).
+
 **Verified merged contributions:** [JudgeForge PR #2](https://github.com/rajsalonia/JudgeForge/pull/2) · [RoofShift AI PR #4](https://github.com/rajsalonia/roofshift-ai/pull/4).
 
 <sub>Official GitHub achievement badges are displayed by GitHub when awarded and enabled in profile settings; this section lists actual merged work, not unverified badges.</sub>
