@@ -28,6 +28,12 @@ I'm a student software engineer building backend services, thoughtful APIs, and 
 
 ### 02 / Engineering toolkit
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/toolkit-background-dark.svg">
+  <img src="assets/toolkit-background-light.svg" alt="Abstract illustrated technology background for backend engineering and applied AI" width="1200">
+</picture>
+
+
 Project experience reflects tools used in portfolio work, not a claim of expert proficiency.
 
 | Area | Project experience |
@@ -41,7 +47,10 @@ Project experience reflects tools used in portfolio work, not a claim of expert 
 
 ### 03 / Selected engineering work
 
-![RoofShift AI — conceptual portfolio art](assets/roofshift-card.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/roofshift-card.svg">
+  <img src="assets/roofshift-card-light.svg" alt="RoofShift AI original conceptual project artwork, not an application screenshot" width="1200">
+</picture>
 
 #### 01 — [RoofShift AI ↗](https://github.com/rajsalonia/roofshift-ai)
 Plan rooftop solar installations and allocate a constrained budget across buildings.
@@ -53,7 +62,10 @@ Geospatial analysis, solar energy forecasting, and multi-building planning. Fore
 
 ---
 
-![JudgeForge — conceptual portfolio art](assets/judgeforge-card.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/judgeforge-card.svg">
+  <img src="assets/judgeforge-card-light.svg" alt="JudgeForge original conceptual project artwork, not an application screenshot" width="1200">
+</picture>
 
 #### 02 — [JudgeForge ↗](https://github.com/rajsalonia/JudgeForge)
 Bring hackathon submissions and isolated judging into one self-hosted workflow.
@@ -65,7 +77,10 @@ The public instance is an evaluation demo. Do not submit sensitive participant d
 
 ---
 
-![CityGraph — conceptual portfolio art](assets/citygraph-card.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/citygraph-card.svg">
+  <img src="assets/citygraph-card-light.svg" alt="CityGraph original conceptual project artwork, not an application screenshot" width="1200">
+</picture>
 
 #### 03 — [CityGraph ↗](https://github.com/rajsalonia/citygraph)
 Explore how infrastructure failures cascade through a simulated city.
@@ -77,7 +92,10 @@ Graph modeling and risk-aware routing with synthetic scenarios; not a live emerg
 
 ---
 
-![BoloAI — conceptual portfolio art](assets/boloai-card.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/boloai-card.svg">
+  <img src="assets/boloai-card-light.svg" alt="BoloAI original conceptual project artwork, not an application screenshot" width="1200">
+</picture>
 
 #### 04 — [BoloAI ↗](https://github.com/rajsalonia/BoloAI)
 Explore multilingual, voice-first assistance in Hindi, Hinglish, and English.
@@ -116,6 +134,11 @@ My actual contribution history lives on [GitHub's contribution graph](https://gi
 <!-- SNAKE:END -->
 
 <sub>The animation follows GitHub contribution data. No estimated streaks, rankings, or invented activity totals.</sub>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/footer-background-dark.svg">
+  <img src="assets/footer-background-light.svg" alt="Ambient illustrated contact section background" width="1200">
+</picture>
 
 ### Let's build something useful
 
