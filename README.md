@@ -2,69 +2,114 @@
 
 # Hi, I'm Raj Salonia 👋
 
-**Software Engineering · Python Backend · Applied AI**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img src="assets/hero-light.svg" alt="Raj Salonia — building useful software, learning deeply" width="960">
+</picture>
 
-B.Tech Computer Science & Engineering, **Bhagwan Parshuram Institute of Technology, Delhi** · Class of **2028**
+**Software Engineering · Python Backend · Practical AI**
 
-Former Software Engineering Intern · **Dexpert Systems (Apr–Jul 2026)**
+`Open to Software Engineering Internships`
 
-[![GitHub](https://img.shields.io/badge/GitHub-Projects-181717?logo=github&logoColor=white)](https://github.com/rajsalonia) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rajsalonia) [![Portfolio](https://img.shields.io/badge/Portfolio-Explore-2563EB?logo=vercel&logoColor=white)](https://raj-salonia-portfolio.vercel.app/)
-
-*Building useful backend services, explainable AI systems, and full-stack applications.*
+[**Portfolio ↗**](https://raj-salonia-portfolio.vercel.app/) · [**LinkedIn ↗**](https://www.linkedin.com/in/rajsalonia) · [**Recruiter contact ↗**](https://www.linkedin.com/in/rajsalonia)
 
 </div>
 
 ---
 
-### About
+### 01 / About me
 
-I'm a CSE undergraduate interested in **backend engineering, REST APIs, AI-assisted workflows, and cloud fundamentals**. I learn by building end-to-end applications: from APIs and data processing to practical interfaces, testing, and deployment configuration.
+I'm a student software engineer building backend services, thoughtful APIs, and AI-assisted applications. I care about reliable, maintainable software: clear contracts, useful tests, and honest documentation.
 
-- **Experience:** Software Engineering Intern, Dexpert Systems (April–July 2026).
-- **Building with:** Python, FastAPI, React, TypeScript, SQL, and Git.
-- **Exploring:** agentic AI patterns, microservice architecture, AWS, Docker, and DevOps workflows.
-- **Open to:** software engineering, Python/backend, applied AI, and cloud internships.
+| Now | Next |
+| :--- | :--- |
+| **B.Tech CSE · Class of 2028**<br>Bhagwan Parshuram Institute of Technology, Delhi | Deepening backend design, microservices, and cloud fundamentals |
+| **Software Engineering Intern**<br>Dexpert Systems · April–July 2026 | Seeking software engineering, backend, applied AI, and cloud internships |
 
-### Technologies
+### 02 / Engineering toolkit
 
-| Area | Tools and technologies |
-| --- | --- |
-| **Languages** | Python · JavaScript · TypeScript · SQL · C++ (learning) |
-| **Backend & data** | FastAPI · REST APIs · Pydantic · SQLAlchemy · SQLite · PostgreSQL concepts |
+Project experience reflects tools used in portfolio work, not a claim of expert proficiency.
+
+| Area | Project experience |
+| :--- | :--- |
+| **Languages** | Python · JavaScript · TypeScript · SQL |
+| **Backend** | FastAPI · REST APIs · Pydantic · SQLAlchemy · SQLite |
 | **Frontend** | React · HTML · CSS · Tailwind CSS |
-| **AI & analytics** | LLM-backed workflows · NumPy · Pandas · scikit-learn · NetworkX |
-| **Engineering** | Git · GitHub Actions · Pytest · Docker · Vite |
-| **Cloud (learning)** | AWS fundamentals · CloudFront · S3 · deployment configuration |
+| **AI & data** | Agentic AI workflows · NumPy · Pandas · scikit-learn · NetworkX |
+| **Delivery** | Git · Docker · GitHub Actions · testing |
+| **Developing further** | Java · C++ · Nginx · AWS fundamentals · microservice architecture |
 
-### Featured engineering projects
+### 03 / Selected engineering work
 
-| Project | What it solves | Core engineering | Demo |
-| --- | --- | --- | --- |
-| **[RoofShift AI](https://github.com/rajsalonia/roofshift-ai)** | Comparing rooftop solar opportunities and allocating limited installation budgets across buildings. | FastAPI · React · solar yield modelling · budget optimization · PDF reports | [CloudFront](https://d2pxwgtcwn203c.cloudfront.net/) |
-| **[CityGraph](https://github.com/rajsalonia/citygraph)** | Understanding cascading urban infrastructure failures in simulated flood scenarios. | FastAPI · NetworkX · Leaflet · Cytoscape · risk-aware graphs | [Vercel](https://citygraph-intelligence.vercel.app/) |
-| **[BoloAI](https://github.com/rajsalonia/BoloAI)** | Making assisted digital workflows accessible through Hindi, Hinglish, and English voice interactions. | FastAPI · voice interfaces · configurable AI/tool integrations · provider fallbacks | [Render](https://boloai-web.onrender.com/) |
-| **[ReviewLens](https://github.com/rajsalonia/ReviewLens)** | Exploring conflicting evidence instead of relying on a single review score. | Multi-source connectors · provenance · entity resolution · React · FastAPI | [Vercel](https://review-lens-black.vercel.app/) |
-| **[Proofly](https://github.com/rajsalonia/document-forgery-ai)** | Surfacing explainable risk indicators in documents and investment-related messages. | Python · FastAPI · document analysis · React · Docker | [Render](https://proofly-app.onrender.com/) |
-| **[JudgeForge](https://github.com/rajsalonia/JudgeForge)** | Supporting hackathon submission, evaluation, and transparent judging workflows. | FastAPI · SQLite · role-based permissions · statistical normalization | [Render](https://judgeforge.onrender.com/) |
+#### 01 — [RoofShift AI ↗](https://github.com/rajsalonia/roofshift-ai)
+Plan rooftop solar installations and allocate a constrained budget across buildings.
 
-> **Demo note:** Demo URLs are provided for portfolio evaluation. Their continuous uptime and full user flows have not all been independently verified. JudgeForge also supports local/self-hosted usage. Sample data and external integration fallbacks are identified in individual project READMEs.
+**FastAPI · React · TypeScript · mathematical optimization · tests · AWS deployment work**  
+Geospatial analysis, solar energy forecasting, and multi-building planning. Forecasts depend on modeled assumptions.
 
-### How I work
+[Source](https://github.com/rajsalonia/roofshift-ai) · [Hosted website ↗](https://d2pxwgtcwn203c.cloudfront.net/)
 
-I aim to make projects **understandable and maintainable**, not just visually impressive. That means documenting setup instructions, API behaviour, test commands, assumptions, and limits; keeping demos distinct from live integrations; and avoiding unsupported production or performance claims.
+---
 
-### Currently learning
+#### 02 — [JudgeForge ↗](https://github.com/rajsalonia/JudgeForge)
+Bring hackathon submissions and isolated judging into one self-hosted workflow.
 
-`Backend design` → `API validation & testing` → `Databases & microservice patterns` → `Docker & CI` → `AWS architecture fundamentals`
+**Python · FastAPI · SQLite · role-based permissions · statistical score normalization**  
+The public instance is an evaluation demo. Do not submit sensitive participant data or confidential files.
 
-### Portfolio
+[Source](https://github.com/rajsalonia/JudgeForge) · [Evaluation demo ↗](https://judgeforge.onrender.com/)
 
-- **Personal portfolio:** [raj-salonia-portfolio.vercel.app](https://raj-salonia-portfolio.vercel.app/)
-- **Resume focus:** Backend engineering, Python/FastAPI, software engineering, and cloud fundamentals.
+---
 
-### Connect
+#### 03 — [CityGraph ↗](https://github.com/rajsalonia/citygraph)
+Explore how infrastructure failures cascade through a simulated city.
 
-- **LinkedIn:** [linkedin.com/in/rajsalonia](https://www.linkedin.com/in/rajsalonia)
-- **GitHub:** [github.com/rajsalonia](https://github.com/rajsalonia)
+**FastAPI · React · NetworkX · Leaflet · GIS visualization**  
+Graph modeling and risk-aware routing with synthetic scenarios; not a live emergency-management system.
 
-<sub>Student engineer · New Delhi, India · Graduating in 2028</sub>
+[Source](https://github.com/rajsalonia/citygraph) · [Hosted interface ↗](https://citygraph-intelligence.vercel.app/)
+
+---
+
+#### 04 — [BoloAI ↗](https://github.com/rajsalonia/BoloAI)
+Explore multilingual, voice-first assistance in Hindi, Hinglish, and English.
+
+**Python · FastAPI · conversational memory · tool orchestration**  
+Provider integrations are configurable; the demo can use fallback/mock adapters. Live AI, speech, telephony, and SMS providers are not independently confirmed.
+
+[Source](https://github.com/rajsalonia/BoloAI) · [Demo ↗](https://boloai-web.onrender.com/)
+
+<sub>Hosted links come from the project repositories. Availability and complete hosted user flows have not been independently confirmed.</sub>
+
+#### More to explore
+
+| Project | Focus |
+| :--- | :--- |
+| [**ReviewLens ↗**](https://github.com/rajsalonia/ReviewLens) | Traceable evidence and conflicting review perspectives · React, TypeScript, FastAPI |
+| [**Proofly ↗**](https://github.com/rajsalonia/document-forgery-ai) | Explainable document risk indicators · Python, FastAPI, React, Docker |
+
+### 04 / Building in public
+
+My actual contribution history lives on [GitHub's contribution graph](https://github.com/rajsalonia?tab=overview) and [public repository activity](https://github.com/rajsalonia?tab=repositories).
+
+<!-- SNAKE:START -->
+Contribution animation is being prepared. [View the native contribution graph ↗](https://github.com/rajsalonia?tab=overview)
+<!-- SNAKE:END -->
+
+<sub>The animation follows GitHub contribution data. No estimated streaks, rankings, or invented activity totals.</sub>
+
+### 05 / Engineering journey
+
+**Worked with**  
+Python → Backend APIs → Databases → practical AI applications
+
+**Learning & deepening**  
+Microservices → Docker & CI/CD → AWS Cloud → reliable Applied AI Systems
+
+### Let's build something useful
+
+Interested in a student engineer who enjoys backend problems and learns through implementation?
+
+[**Connect on LinkedIn ↗**](https://www.linkedin.com/in/rajsalonia) · [**Explore my portfolio ↗**](https://raj-salonia-portfolio.vercel.app/)
+
+<sub>Raj Salonia · New Delhi, India · Graduating in 2028</sub>
