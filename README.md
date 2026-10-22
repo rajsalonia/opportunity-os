@@ -41,6 +41,8 @@ Project experience reflects tools used in portfolio work, not a claim of expert 
 
 ### 03 / Selected engineering work
 
+![RoofShift AI — conceptual portfolio art](assets/roofshift-card.svg)
+
 #### 01 — [RoofShift AI ↗](https://github.com/rajsalonia/roofshift-ai)
 Plan rooftop solar installations and allocate a constrained budget across buildings.
 
@@ -50,6 +52,8 @@ Geospatial analysis, solar energy forecasting, and multi-building planning. Fore
 [Source](https://github.com/rajsalonia/roofshift-ai) · [Hosted website ↗](https://d2pxwgtcwn203c.cloudfront.net/)
 
 ---
+
+![JudgeForge — conceptual portfolio art](assets/judgeforge-card.svg)
 
 #### 02 — [JudgeForge ↗](https://github.com/rajsalonia/JudgeForge)
 Bring hackathon submissions and isolated judging into one self-hosted workflow.
@@ -61,6 +65,8 @@ The public instance is an evaluation demo. Do not submit sensitive participant d
 
 ---
 
+![CityGraph — conceptual portfolio art](assets/citygraph-card.svg)
+
 #### 03 — [CityGraph ↗](https://github.com/rajsalonia/citygraph)
 Explore how infrastructure failures cascade through a simulated city.
 
@@ -70,6 +76,8 @@ Graph modeling and risk-aware routing with synthetic scenarios; not a live emerg
 [Source](https://github.com/rajsalonia/citygraph) · [Hosted interface ↗](https://citygraph-intelligence.vercel.app/)
 
 ---
+
+![BoloAI — conceptual portfolio art](assets/boloai-card.svg)
 
 #### 04 — [BoloAI ↗](https://github.com/rajsalonia/BoloAI)
 Explore multilingual, voice-first assistance in Hindi, Hinglish, and English.
@@ -81,14 +89,22 @@ Provider integrations are configurable; the demo can use fallback/mock adapters.
 
 <sub>Hosted links come from the project repositories. Availability and complete hosted user flows have not been independently confirmed.</sub>
 
-#### More to explore
+### 04 / More to explore
 
 | Project | Focus |
 | :--- | :--- |
 | [**ReviewLens ↗**](https://github.com/rajsalonia/ReviewLens) | Traceable evidence and conflicting review perspectives · React, TypeScript, FastAPI |
 | [**Proofly ↗**](https://github.com/rajsalonia/document-forgery-ai) | Explainable document risk indicators · Python, FastAPI, React, Docker |
 
-### 04 / Building in public
+### 05 / Engineering journey
+
+**Worked with**  
+Python → Backend APIs → Databases → practical AI applications
+
+**Learning & deepening**  
+Microservices → Docker & CI/CD → AWS Cloud → reliable Applied AI Systems
+
+### 06 / Building in public
 
 My actual contribution history lives on [GitHub's contribution graph](https://github.com/rajsalonia?tab=overview) and [public repository activity](https://github.com/rajsalonia?tab=repositories).
 
@@ -100,14 +116,6 @@ My actual contribution history lives on [GitHub's contribution graph](https://gi
 <!-- SNAKE:END -->
 
 <sub>The animation follows GitHub contribution data. No estimated streaks, rankings, or invented activity totals.</sub>
-
-### 05 / Engineering journey
-
-**Worked with**  
-Python → Backend APIs → Databases → practical AI applications
-
-**Learning & deepening**  
-Microservices → Docker & CI/CD → AWS Cloud → reliable Applied AI Systems
 
 ### Let's build something useful
 
