@@ -675,10 +675,32 @@ def gmail_updates():
  requested=result.get("messages",[])[:40]
  with ThreadPoolExecutor(max_workers=6) as pool:
   result_items=[x for x in pool.map(scan_item,requested) if x]
+ # Read the authorized account's own outgoing mail to expose sent history
+ # beyond emails sent through this dashboard. This is read-only.
+ outbox=[]
+ try:
+  from urllib.parse import quote
+  sent_list=gmail_req("GET","messages?q="+quote(
+   'in:sent newer_than:45d (application OR internship OR intern OR engineer)',safe="")+"&maxResults=30")
+  def outbound(item):
+   try:
+    mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Date")
+    headers={x["name"].lower():x["value"] for x in mail.get("payload",{}).get("headers",[])}
+    return {"id":item["id"],"subject":headers.get("subject",""),
+       "to":headers.get("to",""),"date":headers.get("date",""),
+       "gmail_thread_id":mail.get("threadId","")}
+   except Exception:return None
+  with ThreadPoolExecutor(max_workers=5) as pool:
+   outbox=[x for x in pool.map(outbound,sent_list.get("messages",[])[:30]) if x]
+ except Exception:outbox=[]
+ from email.utils import getaddresses
+ related=sent_recipients+[{"recipient":address.lower()} for mail in outbox
+    for _,address in getaddresses([mail.get("to","")])]
+ result_items=[classify_message(item,related) for item in result_items]
  checked_at=now()
  with db.begin() as c:
   c.execute(text("INSERT INTO settings(key,value) VALUES('gmail_last_checked',:v) ON CONFLICT(key) DO UPDATE SET value=excluded.value"),{"v":checked_at})
- return {"messages":result_items,"checked_at":checked_at,"failed":len(requested)-len(result_items),
+ return {"messages":result_items,"outbox":outbox,"checked_at":checked_at,"failed":len(requested)-len(result_items),
          "note":"Labels are hints, not verified outcomes. No reply was sent."}
 @app.post("/api/gmail/send")
 def gmail_send_reviewed():
