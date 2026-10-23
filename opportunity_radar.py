@@ -130,3 +130,30 @@ def mark(db,uid,state):
  with db.begin() as c:
   result=c.execute(text("UPDATE radar_items SET state=:state WHERE id=:id"),{"state":state,"id":uid})
  return bool(result.rowcount)
+
+def ingest_mail_opportunities(db,clock,messages):
+ """Save hiring/event announcements to the private radar as unverified leads."""
+ ensure(db)
+ inserted=0
+ exclude=re.compile(r"rejection|not selected|thank you for applying|application received|interview|assessment|feedback|receipt|submission confirmed",re.I)
+ ts=clock()
+ with db.begin() as c:
+  for message in messages[:40]:
+   uid=str(message.get("id") or "")
+   title=clean(message.get("subject"),180)
+   if not re.fullmatch(r"[a-f0-9]{12,25}",uid) or not CTA.search(title) or exclude.search(title):
+    continue
+   category="Hackathon" if "hackathon" in title.lower() else "Internship" if re.search(r"internship|intern",title,re.I) else "Startup hiring"
+   body=clean(message.get("snippet"),280) or "Open Gmail to verify the original announcement."
+   rid=hashlib.sha256(("gmail:"+uid).encode()).hexdigest()[:32]
+   item={"id":rid,"title":title,"summary":body,
+     "url":"https://mail.google.com/mail/u/0/#all/"+uid,
+     "source":"Gmail · opening alert","category":category,"location":"See original email",
+     "deadline":"","published":message.get("date","")[:80],"seen_at":ts,"state":"new",
+     "verification":"Inbox lead only; employer identity, opening and deadline not verified."}
+   result=c.execute(text("""INSERT INTO radar_items(id,title,summary,url,source,category,
+      location,deadline,published,seen_at,state,verification)
+      VALUES(:id,:title,:summary,:url,:source,:category,:location,:deadline,:published,:seen_at,:state,:verification)
+      ON CONFLICT(id) DO NOTHING"""),item)
+   inserted+=max(0,result.rowcount)
+ return inserted
