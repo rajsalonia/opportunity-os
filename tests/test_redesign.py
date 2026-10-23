@@ -170,7 +170,8 @@ def test_health_and_database_errors_are_sanitized(monkeypatch):
 def test_sources_include_extended_boards_and_custom_removal():
     client = signed_in()
     data = client.get('/api/sources').json
-    assert len(data['extended_boards']) == 4
+    assert len(data['extended_boards']) >= 40
+    assert {x['provider'] for x in data['public_feeds']} >= {'jobicy','remotive','arbeitnow'}
     assert client.post('/api/sources',json={'provider':'lever','slug':'verify-source','name':'Verification'}).status_code == 200
     assert client.delete('/api/sources/lever:verify-source').status_code == 200
     assert not any(source['slug'] == 'verify-source' for source in client.get('/api/sources').json['sources'])
