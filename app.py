@@ -499,7 +499,7 @@ def upload_original_resume():
  if not f or not f.filename.lower().endswith(".pdf"):return {"error":"Upload original PDF resume"},422
  data=f.read(3_000_001)
  if not data.startswith(b"%PDF-") or len(data)>3_000_000:return {"error":"Invalid PDF or file over 3MB"},422
- name="Raj_Salonia_Resume-2.pdf"
+ name="Raj_Salonia_Resume (5)(2).pdf"
  digest=hashlib.sha256(data).hexdigest()
  expected=os.getenv("ORIGINAL_RESUME_SHA256","").lower().strip()
  if expected and digest != expected:
