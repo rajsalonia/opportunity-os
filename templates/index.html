@@ -46,7 +46,7 @@ enter=async()=>{await originalEnterOpportunity();if(!$('#workspace').classList.c
    sessionStorage.setItem('opportunity-os-refresh-attempted','1');
    // Auto-refresh on login, not a background cron: only one attempt per browser session.
    await new Promise(resolve=>setTimeout(resolve,600));
-   try{await $('#extended').click();localStorage.setItem('opportunity-os-last-refresh',String(Date.now()));loadAlerts()}catch(e){}
+   try{await $('#extended').onclick();localStorage.setItem('opportunity-os-last-refresh',String(Date.now()));await loadAlerts()}catch(e){}
  }
  const caps=await api('/api/integrations');
  [...document.querySelectorAll('#contactform input,#contactform button')].forEach(el=>el.disabled=!caps.persistent);
