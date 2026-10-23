@@ -19,6 +19,9 @@ def client_and_db(tmp_path, monkeypatch):
     monkeypatch.delenv("GREENHOUSE_BOARD_KEYS_JSON",raising=False)
     monkeypatch.delenv("OPPORTUNITY_OS_CRON_TOKEN",raising=False)
     monkeypatch.delenv("ORIGINAL_RESUME_SHA256",raising=False)
+    monkeypatch.delenv("OPPORTUNITY_OS_PROFILE_IMPORT_APPROVED",raising=False)
+    monkeypatch.delenv("OPPORTUNITY_OS_PROFILE_PHONE",raising=False)
+    monkeypatch.delenv("OPPORTUNITY_OS_PROFILE_EMAIL",raising=False)
     db=create_engine("sqlite:///"+str(tmp_path/"autotest.db"))
     with db.begin() as c:
         c.execute(text("""CREATE TABLE jobs(id TEXT PRIMARY KEY,company TEXT,title TEXT,location TEXT,
@@ -266,3 +269,33 @@ def test_owner_reported_manual_application_has_separate_receipt_status(client_an
         assert c.scalar(text("SELECT status FROM jobs WHERE id='eligible'"))=="Applied"
     assert client.post("/api/autoapply/confirm-manual/eligible",
         json={"submitted_by_owner":True,"reference":"Duplicate submission"}).status_code==409
+
+
+def test_one_time_private_phone_seed_is_encrypted_and_does_not_send(client_and_db,monkeypatch):
+    client,db=client_and_db
+    authenticate(client)
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_IMPORT_APPROVED","yes")
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_PHONE","+919876543210")
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_EMAIL","demo@example.test")
+    result=client.get("/api/autoapply")
+    assert result.status_code==200
+    assert result.json["profile_ready"] is True
+    assert result.json["profile_contact"]["phone"]=="+919876543210"
+    assert result.json["rules"]["enabled"] is False
+    with db.connect() as c:
+        encrypted=c.scalar(text("SELECT value FROM settings WHERE key='autoapply_profile_v1'"))
+    assert "+919876543210" not in encrypted
+    assert "demo@example.test" not in encrypted
+    assert client.post("/api/autoapply/run").json["attempted"]==0
+
+def test_phone_seed_preserves_existing_opt_out_and_email(client_and_db,monkeypatch):
+    client,db=client_and_db
+    authenticate(client)
+    client.post("/api/autoapply/settings",json={"profile":approved_profile()})
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_IMPORT_APPROVED","yes")
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_PHONE","+919876543211")
+    monkeypatch.setenv("OPPORTUNITY_OS_PROFILE_EMAIL","different@example.test")
+    data=client.get("/api/autoapply").json
+    assert data["profile_contact"]["phone"]=="+919876543211"
+    assert data["profile_contact"]["email"]=="demo@example.test"
+    assert data["rules"]["enabled"] is False
