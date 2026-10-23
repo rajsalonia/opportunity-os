@@ -195,3 +195,23 @@ def test_manual_review_never_overrides_explicit_year_exclusion(client_and_db,mon
     monkeypatch.setattr("autoapply_engine.requests.post",lambda *a,**kw:(_ for _ in ()).throw(AssertionError("No submit")))
     assert client.post("/api/autoapply/run").json["submitted"]==0
     assert client.get("/api/autoapply").json["tasks"][0]["status"]=="needs_review"
+
+
+def test_explicit_worldwide_remote_is_queued_without_claiming_submission(client_and_db):
+    client,db=client_and_db
+    authenticate(client)
+    with db.begin() as c:
+        c.execute(text("UPDATE jobs SET location='Remote Worldwide' WHERE id='eligible'"))
+    counts=client.post("/api/autoapply/prepare").json["queued"]
+    assert counts["ready"]==1
+    assert client.get("/api/autoapply").json["rules"]["enabled"] is False
+    assert client.post("/api/autoapply/run").json["attempted"]==0
+
+
+def test_remote_location_restrictions_stay_review_only(client_and_db):
+    client,db=client_and_db
+    authenticate(client)
+    with db.begin() as c:
+        c.execute(text("UPDATE jobs SET location='Remote USA only' WHERE id='eligible'"))
+    counts=client.post("/api/autoapply/prepare").json["queued"]
+    assert counts["review"]==2
