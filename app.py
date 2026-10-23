@@ -161,7 +161,11 @@ def headers(response):
  response.headers["Cache-Control"]="no-store"
  return response
 @app.get("/")
-def homepage():return render_template("index.html")
+def homepage():
+ if session.get("owner"):
+  session.setdefault("career_csrf",secrets.token_urlsafe(32))
+  return render_template("workspace.html",csrf_token=session["career_csrf"])
+ return render_template("index.html")
 @app.get("/favicon.ico")
 def favicon():return app.send_static_file("mark.svg")
 @app.get("/health")
@@ -316,7 +320,7 @@ def outreach(jid):
  with db.connect() as c:row=c.execute(text("SELECT title,company FROM jobs WHERE id=:id"),{"id":jid}).mappings().first()
  if not row:return {"error":"Not found"},404
  return {"subject":f"Application interest: {row['title']} — Raj Salonia",
- "body":f"Hello Hiring Team,\n\nI am a B.Tech Computer Science student graduating in 2028 with software engineering internship experience and projects in Python, FastAPI and AI. I would love to be considered for the {row['title']} role at {row['company']}.\n\nGitHub: https://github.com/rajsalonia\nLinkedIn: https://linkedin.com/in/rajsalonia\n\nThank you,\nRaj Salonia",
+ "body":f"Hello Hiring Team,\n\nI have software engineering internship experience and build projects with Python, FastAPI and AI. I would love to be considered for the {row['title']} role at {row['company']}.\n\nGitHub: https://github.com/rajsalonia\nLinkedIn: https://linkedin.com/in/rajsalonia\n\nThank you,\nRaj Salonia",
  "sent":False,"note":"Draft only. Check eligibility and attach original resume before sending."}
 @app.post("/api/contacts")
 def contact():
@@ -716,6 +720,11 @@ def gmail_callback():
  "code":code,"redirect_uri":uri,"grant_type":"authorization_code"},timeout=20)
  if response.status_code>=400:abort(502,description="Google authorization could not be completed")
  t=response.json()
+ if session.pop("career_oauth_add",False):
+  t["expires_at"]=time.time()+int(t.get("expires_in",3600))
+  try:app.extensions["career"]["mail"].connect(t)
+  except Exception:abort(502,description="Mailbox identity could not be verified. Existing connections were preserved.")
+  return redirect("/#inbox")
  old=get_token() or {}
  if "refresh_token" not in t and old.get("refresh_token"):t["refresh_token"]=old["refresh_token"]
  t["expires_at"]=time.time()+int(t.get("expires_in",3600))
@@ -992,3 +1001,7 @@ def radar_status(rid):
  status=(request.get_json(silent=True) or {}).get("state")
  if status not in RADAR_STATES:return {"error":"Invalid status"},422
  return {"ok":True} if radar_mark(db,rid,status) else ({"error":"Item not found"},404)
+
+# Opportunity OS 3.0 adds owner-only projections and tables; original APIs remain available.
+from career_os.api import register as register_career
+register_career(app,db,owner,check_origin,now,FERNET,oauth_table,get_token,google_ready,boards,INDIA_DISCOVERY_PORTALS)

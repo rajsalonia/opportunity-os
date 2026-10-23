@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark"><meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Opportunity OS · Your next move</title><link rel="icon" href="/static/mark.svg">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('career-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+  <link rel="stylesheet" href="/static/workspace.css?v=3.0.1">
+  <script src="/static/workspace.js?v=3.0.1" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to workspace</a>
+<aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+  <a class="brand" href="#today"><span class="brand-mark" aria-hidden="true">o<span>↗</span></span><span>opportunity<span class="brand-os"> / os</span></span></a>
+  <div class="workspace-label">PERSONAL WORKSPACE</div>
+  <nav id="primary-nav">
+    {% for id, icon, label in [('today','sun','Today'),('discover','compass','Discover'),('saved','bookmark','Saved'),('applications','briefcase-business','Applications'),('inbox','inbox','Inbox'),('calendar','calendar-days','Calendar')] %}
+    <a href="#{{ id }}" data-nav="{{ id }}"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#{{ icon }}"/></svg><span>{{ label }}</span><span class="nav-count" id="count-{{ id }}"></span></a>
+    {% endfor %}
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="intelligence-launch" data-action="assistant"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#sparkles"/></svg><span>Opportunity Intelligence<small>Make your next move clearer</small></span></button>
+    <a class="settings-link" href="#settings"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#settings-2"/></svg>Settings & tools</a>
+    <div class="owner"><span class="avatar">RS</span><div>Raj Salonia<small>Private career workspace</small></div><button class="icon-button" data-action="logout" aria-label="Sign out"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#log-out"/></svg></button></div>
+  </div>
+</aside>
+<div class="workspace">
+  <header class="topbar">
+    <button class="icon-button mobile-menu" data-action="menu" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#menu"/></svg></button>
+    <span id="breadcrumb">Workspace <span>/</span> Today</span>
+    <div class="topbar-actions"><span class="private-label"><span class="status-dot"></span>Private workspace</span><button class="icon-button" data-action="theme" aria-label="Switch color theme"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#moon"/></svg></button><button class="icon-button" data-action="assistant" aria-label="Open Opportunity Intelligence"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#sparkles"/></svg></button><span class="avatar small">RS</span></div>
+  </header>
+  <main id="content" tabindex="-1"><div class="loading-state" role="status">Loading your workspace…</div></main>
+  <footer class="workspace-footer"><span>Small steps. Better opportunities.</span><span>Opportunity OS 3.0 <span aria-hidden="true">·</span> Asia/Kolkata</span></footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+<dialog id="assistant-dialog" aria-labelledby="assistant-title">
+  <div class="dialog-heading"><div class="section-icon"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#sparkles"/></svg></div><div><h2 id="assistant-title">Opportunity Intelligence</h2><p>Grounded in your workspace. Explained with sources.</p></div><button class="icon-button" data-close aria-label="Close intelligence"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#x"/></svg></button></div>
+  <div class="assistant-body"><div class="notice">Private, deterministic assistance. No external model receives your mail, contacts, or resume.</div><div class="quick-prompts"><button data-question="What should I prioritize?">What should I prioritize?</button><button data-question="Which skills am I missing?">Skills to develop</button><button data-question="Who replied to my emails?">Review email signals</button><button data-question="Draft a cold email">Draft an introduction</button></div><div id="compare-context" class="muted"></div><div id="assistant-answer" aria-live="polite"></div><form id="assistant-form"><label for="assistant-question">Ask about your opportunities</label><div class="input-action"><input id="assistant-question" name="question" required maxlength="500" placeholder="Compare my selected opportunities…"><button class="button primary" type="submit">Ask <svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#arrow-right"/></svg></button></div></form></div>
+</dialog>
+<noscript><p>This private workspace needs JavaScript. Your existing tools remain available at <a href="/classic">Advanced workspace</a>.</p></noscript>
+</body></html>

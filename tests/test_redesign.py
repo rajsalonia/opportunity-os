@@ -39,6 +39,8 @@ def test_public_html_excludes_private_workspace_and_logout_clears_access():
             assert client.get(path).status_code == 401
         client.post('/api/login',json={'password':'test-secret-not-a-real-password'})
         page = client.get('/').data.decode()
+        assert all('data-nav="'+section+'"' in page for section in ['today','discover','saved','applications','inbox','calendar'])
+        page = client.get('/classic').data.decode()
         for section in ['overview','explore','applications','contacts','gmail','resume','sources','settings']:
             assert f'id="page-{section}"' in page
         assert client.post('/api/logout',headers={'Origin':'https://foreign.example'}).status_code == 403
@@ -216,8 +218,8 @@ def test_radar_is_private_and_saved_public_links_are_review_only():
     assert app.test_client().get('/api/radar').status_code == 401
     client=signed_in()
     page=client.get('/').data.decode()
-    assert 'id="page-radar"' in page
-    assert 'id="radar-list"' in page
+    assert 'id="page-radar"' in client.get('/classic').data.decode()
+    assert 'id="radar-list"' in client.get('/classic').data.decode()
     snapshot=client.get('/api/radar')
     assert snapshot.status_code == 200
     assert len(snapshot.json['sources']) >= 6
