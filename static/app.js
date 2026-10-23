@@ -86,7 +86,7 @@
 
   const STAGES = ['Discovered','Saved','Draft ready','Applied','Assessment','Interview','Offer','Rejected','Closed'];
   const PAGE_TITLES = {overview:'Overview',radar:'Opportunity Radar',explore:'Explore opportunities',applications:'My applications',contacts:'Recruiter CRM',gmail:'Gmail & outreach',resume:'Resume vault',sources:'Career sources',settings:'Settings & integrations'};
-  const state = {jobs:null,radar:null,radarCategory:'all',radarLimit:48,radarScanning:false,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,gmailOutbox:null,page:'overview',limit:24,view:'board',refreshing:false};
+  const state = {jobs:null,radar:null,radarCategory:'all',radarLimit:48,radarScanning:false,mailActivity:null,discoveryState:null,discoveryChecking:false,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,gmailOutbox:null,page:'overview',limit:24,view:'board',refreshing:false};
   const options = (selected, stages = STAGES) => stages.map(stage => `<option${stage === selected ? ' selected' : ''}>${esc(stage)}</option>`).join('');
   $('#stage-filter').insertAdjacentHTML('beforeend', options(''));
   $('#application-stage').insertAdjacentHTML('beforeend', options('',STAGES.slice(1)));
@@ -510,12 +510,110 @@
     }finally{state.radarScanning=false;if(btn)btn.disabled=false;}
   }
 
-  function renderAll() { renderOverview(); renderRadar(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); renderAutomation(); }
+
+  function renderDailyBrief() {
+    const panel=$('#daily-command-list'),stats=$('#daily-command-stats'),status=$('#discovery-freshness');
+    if(!panel||!stats)return;
+    const jobs=(state.jobs||[]).filter(job=>!['Closed','Rejected','Applied','Assessment','Interview','Offer'].includes(job.status));
+    const india=/\b(india|delhi|noida|gurugram|gurgaon|bengaluru|bangalore|pune|hyderabad|mumbai|chennai|kolkata|ncr)\b/i;
+    const suitable=jobs.filter(job=>india.test(job.location||'') || (job.work_mode==='Remote' && job.remote_scope==='Worldwide claimed / verify'))
+      .sort((a,b)=>score(b)-score(a));
+    const signals=(state.radar?.items||[]).filter(x=>x.state!=='dismissed'&&
+      ['Internship','Hackathon','Event','Startup hiring','Fellowship','Scholarship'].includes(x.category));
+    const important=(state.mailActivity?.items||[]).filter(m=>
+      m.direction==='received' && !m.reviewed &&
+      /Same Gmail conversation|Sender matches/i.test(m.reply_match||''));
+    const total=(state.jobs||[]).length;
+    stats.innerHTML='<span><strong>'+total+'</strong> employer listings</span>'+
+      '<span><strong>'+suitable.length+'</strong> India/worldwide candidates</span>'+
+      '<span><strong>'+signals.length+'</strong> community signals</span>'+
+      '<span><strong>'+important.length+'</strong> possible replies to review</span>';
+    if(status){
+      const d=state.discoveryState||{};
+      const label=d.status==='refreshing'?'Finding new jobs in background…':
+        d.status==='failed'?'Job refresh failed · previous listings retained':
+        d.success_at?'Employer boards checked '+shortTime(d.success_at):
+        'Cached jobs available · checking freshness';
+      status.textContent=label;
+    }
+    const cards=[];
+    for(const job of suitable.slice(0,4)){
+      const link=safeUrl(job.url),raw=(job.description_preview||job.description||'').trim();
+      const description=raw?raw.slice(0,160):'Open the employer listing to check responsibilities, stipend and application requirements.';
+      const tag=job.work_mode==='Remote'?'Remote · eligibility check':'India-based · check eligibility';
+      cards.push('<article class="daily-brief-card"><div class="daily-brief-top"><span class="daily-brief-kind">ENGINEERING ROLE</span><span class="daily-brief-score">'+score(job)+' / 100 estimated match</span></div>'+
+        '<h3>'+esc(job.title)+'</h3><p class="daily-brief-meta">'+esc(job.company)+' · '+esc(job.location||'Location not provided')+'</p>'+
+        '<p class="daily-brief-description">'+esc(description)+'</p><div class="daily-brief-foot"><span>'+esc(tag)+'</span>'+
+        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Official listing ↗</a>':'')+'</div></article>');
+    }
+    for(const item of signals.slice(0,4)){
+      const link=safeUrl(item.url),summary=(item.summary||'Read the source to confirm details.').slice(0,170);
+      cards.push('<article class="daily-brief-card"><div class="daily-brief-top"><span class="daily-brief-kind">'+esc(item.category)+'</span><span class="daily-brief-score">'+esc(item.source||'Public feed')+'</span></div>'+
+        '<h3>'+esc(item.title)+'</h3><p class="daily-brief-description">'+esc(summary)+'</p>'+
+        '<div class="daily-brief-foot"><span>Dates and eligibility unverified</span>'+
+        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Read source ↗</a>':'')+'</div></article>');
+    }
+    panel.innerHTML=cards.length?cards.join(''):empty('Your brief is getting ready',
+      'Connect your sources or check for new posts. Saved opportunities remain available even when feeds are offline.','info','',true);
+  }
+
+  function renderMailLedger() {
+    const node=$('#mail-ledger-list'),tag=$('#mail-ledger-count');
+    if(!node)return;
+    const items=state.mailActivity?.items||[];
+    const count=(state.mailActivity?.counts?.received||0);
+    const replies=items.filter(x=>x.direction==='received'&&
+      /Same Gmail conversation|Sender matches/i.test(x.reply_match||''));
+    if(tag)tag.textContent=count+' received · '+replies.length+' possible replies';
+    const shown=items.filter(x=>x.direction==='received').slice(0,16);
+    node.innerHTML=shown.length?shown.map(x=>{
+      const matched=/Same Gmail conversation|Sender matches/i.test(x.reply_match||'');
+      const url='https://mail.google.com/mail/u/0/#all/'+encodeURIComponent(x.id);
+      return '<article class="mail-ledger-item"><div class="daily-brief-top"><span class="daily-brief-kind">'+
+        esc(matched?'POSSIBLE RECRUITER REPLY':'INBOX SIGNAL')+'</span><span class="daily-brief-score">'+esc(x.stage||'Needs review')+'</span></div>'+
+        '<h3>'+esc(x.subject||'(No subject)')+'</h3><p>'+esc(x.sender||'Sender unavailable')+' · '+esc(shortTime(x.date))+'</p>'+
+        '<p>'+esc((x.snippet||'').slice(0,240))+'</p><small>'+esc(x.reply_match||'Check original thread')+'</small>'+
+        '<div class="daily-brief-foot"><a href="'+url+'" target="_blank" rel="noopener noreferrer">Review Gmail ↗</a>'+
+        (!x.reviewed?'<button type="button" class="button small" data-review-mail="'+esc(x.id)+'">Mark reviewed</button>':'<span>Reviewed</span>')+'</div></article>';
+    }).join(''):empty('No synced inbox activity',
+      'Connect Gmail inside Opportunity OS and click Check replies. Your connected ChatGPT Gmail account is separate from the website login.','mail','',true);
+  }
+
+  async function autoDiscover() {
+    if(state.discoveryChecking || !state.caps?.persistent)return;
+    state.discoveryChecking=true;
+    try {
+      const result=await post('/api/discovery/auto-refresh');
+      state.discoveryState=result;renderDailyBrief();
+      if(result.result==='started'){
+        let tries=0;
+        const poll=async()=>{
+          if(++tries>7)return;
+          try {
+            state.discoveryState=await api('/api/discovery/state');
+            renderDailyBrief();
+            if(state.discoveryState.status==='ready'){
+              await reloadJobs();
+              state.radar=await api('/api/radar');
+              renderRadar();renderDailyBrief();return;
+            }
+            if(state.discoveryState.status==='failed')return;
+          }catch(error){return;}
+          setTimeout(poll,18000);
+        };
+        setTimeout(poll,18000);
+      }
+    }catch(error){
+      if($('#discovery-freshness'))$('#discovery-freshness').textContent='Live job check unavailable · saved roles shown';
+    }finally{state.discoveryChecking=false;}
+  }
+
+  function renderAll() { renderOverview(); renderRadar(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); renderAutomation(); renderMailLedger(); renderDailyBrief(); }
   const requests = [
     ['jobs','/api/jobs',data => data.jobs],['summary','/api/summary',data => data],['alerts','/api/alerts',data => data],
     ['caps','/api/integrations',data => data],['contacts','/api/contacts',data => data.contacts],
     ['sources','/api/sources',data => data],['radar','/api/radar',data => data],['sent','/api/gmail/sent',data => data.emails],
-    ['autoapply','/api/autoapply',data => data]
+    ['autoapply','/api/autoapply',data => data],['mailActivity','/api/gmail/activity',data => data]
   ];
 
   $('#radar-search').addEventListener('input',()=>{state.radarLimit=48;renderRadar();});
@@ -631,6 +729,7 @@
         if (!state.caps) { $('#gmail-status').textContent = 'Integration status is unavailable. Retry the connection check.'; $('#settings-integrations').innerHTML = empty('Status unavailable','Check your database connection and retry.','info'); }
       }
       renderAll();
+      autoDiscover();
       if(state.radar){
         const ts=Date.parse(state.radar.checked_at||'');
         if(!Number.isFinite(ts)||Date.now()-ts>4*3600*1000)refreshRadar(true);
@@ -784,11 +883,25 @@
     if (!window.confirm(`Send exactly ONE reviewed email to ${payload.to}?\nSubject: ${payload.subject}\nOriginal resume: ${payload.attach_original_resume ? 'attached' : 'not attached'}\nThis sends the email immediately.`)) return;
     await busy(event.submitter,async () => { try { const result = await post('/api/gmail/send',payload); feedback('#send-result',result.sent ? 'Email sent and recorded in your reviewed email history.' : 'The send was not confirmed. Check Gmail before retrying.',!result.sent); state.sent = (await api('/api/gmail/sent')).emails; renderSent(); } catch (error) { feedback('#send-result',error.message,true); } finally { $('#send-confirmed').checked = false; } },'Sending one email…'); updateSendGate();
   });
+  $('#mail-ledger-list').addEventListener('click',async event=>{
+    const btn=event.target.closest('[data-review-mail]');
+    if(!btn)return;
+    await busy(btn,async()=>{
+      try{
+        await api('/api/gmail/activity/'+encodeURIComponent(btn.dataset.reviewMail)+'/reviewed',
+          {method:'PATCH',body:JSON.stringify({})});
+        state.mailActivity=await api('/api/gmail/activity');
+        renderMailLedger();renderDailyBrief();
+      }catch(error){toast(error.message,true);}
+    },'Saving…');
+  });
   $('#gmail-check').addEventListener('click',async event => {
     await busy(event.currentTarget,async () => {
       try {
         const result = await api('/api/gmail/updates'); state.messages = result.messages;
         state.gmailOutbox=result.outbox||[];renderSent();
+        try{state.mailActivity=await api('/api/gmail/activity');renderMailLedger();renderDailyBrief();}
+        catch(error){toast('Inbox checked, but activity history could not refresh.',true);}
         if(result.imported_signals){
           try{state.radar=await api('/api/radar');renderRadar();}
           catch(error){toast('Inbox was checked, but the Radar could not reload.',true);}
