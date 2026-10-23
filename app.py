@@ -827,3 +827,31 @@ if has_persistent_db():
   # One failed source should not prevent the dashboard from starting.
   app.logger.error("Curated job preparation deferred: %s",type(exc).__name__)
 
+
+# Multi-source opportunity radar: public RSS plus owner-saved post links.
+from opportunity_radar import snapshot as radar_snapshot, refresh as radar_refresh, save as radar_save, mark as radar_mark, STATES as RADAR_STATES
+
+@app.get("/api/radar")
+def radar_get():
+ owner()
+ return radar_snapshot(db)
+
+@app.post("/api/radar/refresh")
+def radar_scan():
+ check_origin()
+ return radar_refresh(db,now)
+
+@app.post("/api/radar/save")
+def radar_add():
+ check_origin()
+ try:rid=radar_save(db,now,request.get_json(silent=True) or {})
+ except ValueError as exc:return {"error":str(exc)},422
+ return {"ok":True,"id":rid}
+
+@app.patch("/api/radar/<rid>")
+def radar_status(rid):
+ check_origin()
+ if not re.fullmatch(r"[a-f0-9]{32}",rid):return {"error":"Invalid item ID"},422
+ status=(request.get_json(silent=True) or {}).get("state")
+ if status not in RADAR_STATES:return {"error":"Invalid status"},422
+ return {"ok":True} if radar_mark(db,rid,status) else ({"error":"Item not found"},404)
