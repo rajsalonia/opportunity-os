@@ -384,12 +384,12 @@
     $('#auto-mode-badge').textContent=r.enabled ? 'Enabled with safeguards' : 'Automation off';
     $('#auto-mode-badge').className='badge ' + (r.enabled ? 'positive' : 'warning');
     $('#auto-run').disabled=!r.enabled || !data.profile_ready || !data.resume_ready;
-    const tasks=data.tasks || [];
-    const submitted=tasks.filter(item=>item.status==='submitted').length;
-    const ownerRecorded=tasks.filter(item=>item.status==='user_reported').length;
-    const ready=tasks.filter(item=>item.status==='ready').length;
-    const review=tasks.filter(item=>item.status==='needs_review' || item.status==='unknown').length;
-    $('#auto-overview').textContent=tasks.length+' queued · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions · '+ownerRecorded+' owner-recorded. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
+    const tasks=data.tasks || [], counts=data.task_summary?.by_status || {};
+    const submitted=counts.submitted ?? tasks.filter(item=>item.status==='submitted').length;
+    const ownerRecorded=counts.user_reported ?? tasks.filter(item=>item.status==='user_reported').length;
+    const ready=counts.ready ?? tasks.filter(item=>item.status==='ready').length;
+    const review=(counts.needs_review ?? tasks.filter(item=>item.status==='needs_review').length)+(counts.unknown ?? tasks.filter(item=>item.status==='unknown').length);
+    $('#auto-overview').textContent=(data.task_summary?.total ?? tasks.length)+' queued (latest '+tasks.length+' displayed) · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions · '+ownerRecorded+' owner-recorded. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
     const historyFilter=$('#auto-history-filter').value;
     const visibleTasks=historyFilter==='all' ? tasks : tasks.filter(item=>item.status===historyFilter);
     node.innerHTML=visibleTasks.length ? visibleTasks.slice(0,80).map(item=>{
@@ -423,7 +423,7 @@
 
   $('#auto-prep').addEventListener('click',async event=>{
     await busy(event.currentTarget,async()=>{
-      try {const v=await post('/api/autoapply/prepare',{limit:150});$('#auto-feedback').textContent='Queued '+v.queued.ready+' eligible and '+v.queued.review+' review-needed opportunities.';await reloadAutomation();}
+      try {const v=await post('/api/autoapply/prepare',{limit:600});$('#auto-feedback').textContent='Queued '+v.queued.ready+' eligible and '+v.queued.review+' review-needed opportunities.';await reloadAutomation();}
       catch(error){toast(error.message,true);}
     },'Preparing…');
   });
