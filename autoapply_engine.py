@@ -258,6 +258,8 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         d=rules();p=profile();doc=get_resume()
         return {"rules":d,"profile_ready":valid_profile(p),"profile_email":p.get("email") if p else None,
                 "resume_ready":bool(doc),"tasks":list_tasks(),
+                "profile_contact":{k:p.get(k,"") for k in ("first_name","last_name","email","phone")} if p else None,
+                "profile_work_authorized_india":p.get("work_authorized_india") is True if p else False,
                 "greenhouse_keys_configured":bool(os.getenv("GREENHOUSE_BOARD_KEYS_JSON")),
                 "scheduled_trigger_configured":bool(os.getenv("OPPORTUNITY_OS_CRON_TOKEN")),
                 "professional_defaults":PUBLIC_PROFESSIONAL_PROFILE,
