@@ -94,7 +94,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             return False
         phone=os.getenv("OPPORTUNITY_OS_PROFILE_PHONE","").strip()
         email=os.getenv("OPPORTUNITY_OS_PROFILE_EMAIL","").strip().lower()
-        if not re.fullmatch(r"\\+91[6-9]\\d{9}",phone) or not _VALID_EMAIL.fullmatch(email):
+        if not re.fullmatch(r"\+91[6-9]\d{9}",phone) or not _VALID_EMAIL.fullmatch(email):
             return False
         existing=profile()
         if existing:
