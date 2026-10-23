@@ -720,3 +720,8 @@ def restore_backup():
      "email":email,"role":str(person.get("role",""))[:150],"notes":str(person.get("notes",""))[:4000]})
  return {"ok":True,"jobs_restored":restored,"contacts_present":len(contacts)}
 
+
+# Separate private automation feature. It shares the existing session and
+# persistent database, and is disabled until the owner explicitly enables it.
+from autoapply_engine import register as register_autoapply
+register_autoapply(app, db, owner, check_origin, now, has_persistent_db, resume_table)
