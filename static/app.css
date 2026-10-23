@@ -53,3 +53,10 @@
 .automation-task p,.automation-task small{display:block;margin:.3rem 0;color:var(--text-secondary,#9ca3af);overflow-wrap:anywhere}
 .automation-task-actions{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
 @media(max-width:720px){.automation-task{flex-direction:column;align-items:stretch}.automation-task-actions .button{justify-content:center}.automation-actions .button{flex:1 1 auto}}
+
+/* Global remote-first discovery and auditable submission history */
+.job-description-preview{font-size:.87rem;line-height:1.55;opacity:.86;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;margin:.7rem 0 .15rem;max-width:72ch;overflow-wrap:anywhere}
+.automation-history-filters{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.automation-history-filters select{min-width:190px;max-width:100%;padding:.5rem .7rem;border-radius:8px}
+.detail-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;max-height:60vh;overflow-y:auto}
+@media(max-width:720px){.job-description-preview{-webkit-line-clamp:2}.automation-history-filters select{flex:1}}
