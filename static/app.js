@@ -85,8 +85,8 @@
   }
 
   const STAGES = ['Discovered','Saved','Draft ready','Applied','Assessment','Interview','Offer','Rejected','Closed'];
-  const PAGE_TITLES = {overview:'Overview',explore:'Explore opportunities',applications:'My applications',contacts:'Recruiter CRM',gmail:'Gmail & outreach',resume:'Resume vault',sources:'Career sources',settings:'Settings & integrations'};
-  const state = {jobs:null,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,page:'overview',limit:24,view:'board',refreshing:false};
+  const PAGE_TITLES = {overview:'Overview',radar:'Opportunity Radar',explore:'Explore opportunities',applications:'My applications',contacts:'Recruiter CRM',gmail:'Gmail & outreach',resume:'Resume vault',sources:'Career sources',settings:'Settings & integrations'};
+  const state = {jobs:null,radar:null,radarCategory:'all',radarLimit:48,radarScanning:false,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,page:'overview',limit:24,view:'board',refreshing:false};
   const options = (selected, stages = STAGES) => stages.map(stage => `<option${stage === selected ? ' selected' : ''}>${esc(stage)}</option>`).join('');
   $('#stage-filter').insertAdjacentHTML('beforeend', options(''));
   $('#application-stage').insertAdjacentHTML('beforeend', options('',STAGES.slice(1)));
@@ -413,14 +413,130 @@
     renderAutomation();
   }
 
-  function renderAll() { renderOverview(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); renderAutomation(); }
+  /* One glance at jobs, startup feeds, hackathons and community announcements.
+     Source cards are discovery only, not application/registration receipts. */
+  const radarJobItem = job => ({
+    id:'job:'+job.id, category:/intern|trainee|apprentice|co.?op/i.test(job.title||'')?'Internship':'Startup hiring',
+    title:job.title,summary:job.description_preview||job.description?.slice(0,320)||'Check official employer requirements.',
+    url:job.url,source:job.company+' · '+(job.provider||'Employer'),
+    location:job.location||'Location not specified',deadline:job.deadline||'',
+    state:['Saved','Draft ready','Applied','Assessment','Interview','Offer'].includes(job.status)?'saved':'new',
+    verification:job.warnings||'Employer job listing; eligibility and location must be verified.',
+    score:score(job),published:job.discovered||'',isJob:true
+  });
+  function radarMerged() {
+    const inbox=(state.radar?.items||[]).map(x=>({...x,isJob:false}));
+    const jobs=(state.jobs||[])
+      .filter(x=>!['Closed','Rejected'].includes(x.status))
+      .map(radarJobItem)
+      .sort((a,b)=>(b.score||0)-(a.score||0));
+    const india=jobs.filter(x=>/\b(india|delhi|ncr|noida|gurgaon|gurugram|mumbai|pune|hyderabad|bengaluru|bangalore)\b/i.test(x.location));
+    const remote=jobs.filter(x=>/remote|worldwide/i.test(x.location) && !india.includes(x));
+    const remaining=jobs.filter(x=>!india.includes(x) && !remote.includes(x));
+    return [...india,...remote,...inbox,...remaining];
+  }
+  function radarCard(item) {
+    const category=esc(item.category||'Opportunity');
+    const label=item.isJob?'Employer listing':(item.source||'Public feed');
+    const meta=[item.location||'',item.deadline?'Deadline '+item.deadline:''].filter(Boolean).map(esc).join(' · ');
+    const warning=esc(item.verification||'Confirm eligibility with the source.');
+    const open=safeUrl(item.url)?'<a class="button small radar-open" href="'+esc(safeUrl(item.url))+'" target="_blank" rel="noopener noreferrer">View source '+icon('external')+'</a>':'';
+    const buttons=item.isJob ?
+      '<a class="button small" href="#explore" data-radar-job-search="'+esc(item.title)+'">In Explore →</a>' :
+      '<button type="button" class="button small" data-radar-item="'+esc(item.id)+'" data-radar-next="'+(item.state==='saved'?'new':'saved')+'">'+(item.state==='saved'?'Unsave':'Save')+'</button>'+
+      '<button type="button" class="icon-button radar-dismiss" data-radar-item="'+esc(item.id)+'" data-radar-next="dismissed" aria-label="Dismiss this signal">'+icon('x')+'</button>';
+    const scorePill=item.isJob?'<span class="radar-score">'+Number(item.score||0)+'% estimated match</span>':'';
+    return '<article class="radar-card"><div class="radar-card-line"><span class="radar-type">'+category+'</span><span class="radar-source">'+esc(label)+'</span>'+scorePill+'</div><h3>'+esc(item.title)+'</h3>'+
+       '<p>'+esc(item.summary||'Read the original announcement for details.')+'</p>'+
+       '<div class="radar-meta">'+(meta?'<span>'+meta+'</span>':'')+'<span>'+warning+'</span></div>'+
+       '<div class="radar-card-actions">'+(item.state==='saved'?'<span class="badge positive">Saved</span>':'')+open+buttons+'</div></article>';
+  }
+  function renderRadar() {
+    const list=$('#radar-list'),glance=$('#radar-glance-list');
+    if(!state.radar && !state.jobs){list.innerHTML='<div class="skeleton job-skeleton"></div>';return;}
+    const all=radarMerged(),countSaved=all.filter(i=>i.state==='saved').length;
+    $('#nav-radar-count').textContent=all.length;
+    $('#radar-total').textContent=all.length;
+    $('#radar-saved-count').textContent=countSaved;
+    $('#radar-feed-count').textContent=state.radar?.sources?.length??6;
+    const ts=state.radar?.checked_at;
+    $('#radar-freshness').textContent=ts?'Updated '+shortTime(ts):'Feed sync pending';
+    $('#radar-checked').textContent=ts?'Public feeds checked '+shortTime(ts):'Public feed check pending';
+    $('#radar-sources').innerHTML=(state.radar?.sources||[]).map(x=>
+      '<a href="'+esc(safeUrl(x.url))+'" target="_blank" rel="noopener noreferrer" class="radar-source-link"><span>'+esc(x.name)+'</span>'+icon('external')+'</a>').join('')+
+      '<p class="muted">Listings are aggregated with source attribution; availability is never guaranteed.</p>';
+    const query=$('#radar-search').value.toLowerCase().trim(),cat=state.radarCategory;
+    const visible=all.filter(x=>(cat==='all'||(cat==='saved'?x.state==='saved':x.category===cat)) &&
+      (!query||[x.title,x.summary,x.location,x.source].join(' ').toLowerCase().includes(query)));
+    $('#radar-results-count').textContent=visible.length+' signals'+(query?' matching your search':'');
+    const max=state.radarLimit;
+    list.innerHTML=visible.length?visible.slice(0,max).map(radarCard).join(''):empty(
+      'Nothing matching those filters','Try a different keyword or open the official hiring sites in Career Sources.','search');
+    $('#radar-show-more').hidden=visible.length<=max;
+    const top=all.filter(x=>x.state!=='dismissed').slice(0,3);
+    glance.innerHTML=top.length?top.map(item=>'<a class="radar-glance-item" href="#radar"><span class="radar-glance-tag">'+esc(item.category)+'</span><strong>'+esc(item.title)+'</strong><small>'+esc(item.source)+'</small><span aria-hidden="true">↗</span></a>').join(''):
+       '<a href="#radar" class="radar-glance-item">Check new opportunities →</a>';
+  }
+  async function refreshRadar(quiet=false) {
+    if(state.radarScanning)return;
+    state.radarScanning=true;
+    const btn=$('#radar-refresh');
+    if(btn)btn.disabled=true;
+    if(!quiet)$('#radar-freshness').textContent='Checking source feeds…';
+    try {
+      const response=await post('/api/radar/refresh');
+      const next=await api('/api/radar');
+      state.radar=next;renderRadar();
+      if(!quiet)toast(response.skipped?'Radar already up to date':response.new+' fresh signal(s) found.');
+    }catch(error){
+      if(!quiet)toast('Radar refresh unavailable: '+error.message,true);
+      $('#radar-freshness').textContent='Feed refresh failed · existing listings kept';
+    }finally{state.radarScanning=false;if(btn)btn.disabled=false;}
+  }
+
+  function renderAll() { renderOverview(); renderRadar(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); renderAutomation(); }
   const requests = [
     ['jobs','/api/jobs',data => data.jobs],['summary','/api/summary',data => data],['alerts','/api/alerts',data => data],
     ['caps','/api/integrations',data => data],['contacts','/api/contacts',data => data.contacts],
-    ['sources','/api/sources',data => data],['sent','/api/gmail/sent',data => data.emails],
+    ['sources','/api/sources',data => data],['radar','/api/radar',data => data],['sent','/api/gmail/sent',data => data.emails],
     ['autoapply','/api/autoapply',data => data]
   ];
 
+  $('#radar-search').addEventListener('input',()=>{state.radarLimit=48;renderRadar();});
+  $('#radar-categories').addEventListener('click',event=>{
+    const b=event.target.closest('[data-radar-category]');if(!b)return;
+    state.radarCategory=b.dataset.radarCategory;state.radarLimit=48;
+    $('#radar-categories button').forEach(x=>{const active=x===b;x.classList.toggle('active',active);x.setAttribute('aria-pressed',String(active));});
+    renderRadar();
+  });
+  $('#radar-show-more').addEventListener('click',()=>{state.radarLimit+=60;renderRadar();});
+  $('#radar-refresh').addEventListener('click',()=>refreshRadar(false));
+  $('#radar-list').addEventListener('click',async event=>{
+    const quick=event.target.closest('[data-radar-job-search]');
+    if(quick){$('#job-search').value=quick.dataset.radarJobSearch;state.limit=24;renderExplore();return;}
+    const target=event.target.closest('[data-radar-item]');
+    if(!target)return;
+    const next=target.dataset.radarNext;
+    target.disabled=true;
+    try{
+      await api('/api/radar/'+encodeURIComponent(target.dataset.radarItem),
+                {method:'PATCH',body:JSON.stringify({state:next})});
+      state.radar=await api('/api/radar');renderRadar();
+    }catch(error){toast(error.message,true);target.disabled=false;}
+  });
+  $('#radar-save-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const button=event.submitter;
+    await busy(button,async()=>{
+      try{
+        await post('/api/radar/save',{
+          title:$('#radar-link-title').value.trim(),url:$('#radar-link-url').value.trim(),
+          category:$('#radar-link-category').value,summary:$('#radar-link-summary').value.trim()});
+        event.target.reset();state.radar=await api('/api/radar');
+        $('#radar-save-feedback').textContent='Link saved. Read the original post to verify details.';renderRadar();
+      }catch(error){$('#radar-save-feedback').textContent=error.message;toast(error.message,true);}
+    },'Saving source…');
+  });
   $('#auto-prep').addEventListener('click',async event=>{
     await busy(event.currentTarget,async()=>{
       try {const v=await post('/api/autoapply/prepare',{limit:600});$('#auto-feedback').textContent='Queued '+v.queued.ready+' eligible and '+v.queued.review+' review-needed opportunities.';await reloadAutomation();}
@@ -499,6 +615,10 @@
         if (!state.caps) { $('#gmail-status').textContent = 'Integration status is unavailable. Retry the connection check.'; $('#settings-integrations').innerHTML = empty('Status unavailable','Check your database connection and retry.','info'); }
       }
       renderAll();
+      if(state.radar){
+        const ts=Date.parse(state.radar.checked_at||'');
+        if(!Number.isFinite(ts)||Date.now()-ts>4*3600*1000)refreshRadar(true);
+      }
       // Replace loading placeholders with errors rather than implying zero records.
       if (!state.jobs && failures.length) {
         $('#jobs-list').innerHTML = empty('Your opportunities couldn’t load','Check the error above and retry.','info');
