@@ -344,6 +344,28 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
                 reviewed_at=:ts,updated_at=:ts WHERE job_id=:id AND status='needs_review'"""),{"id":jid,"ts":now()})
         return {"ok":True,"message":"Queued for supported API submission. Unsupported employer forms remain review-only."}
 
+    @app.post("/api/autoapply/confirm-manual/<jid>")
+    def confirm_manual_submission(jid):
+        check_origin();ensure()
+        body=request.get_json(silent=True) or {}
+        reference=str(body.get("reference","")).strip()[:180]
+        if body.get("submitted_by_owner") is not True or len(reference)<4:
+            return {"error":"Confirm actual submission and provide the employer's receipt, reference or acknowledgement."},422
+        with db.begin() as c:
+            job=c.execute(text("SELECT status FROM jobs WHERE id=:id"),{"id":jid}).first()
+            task=c.execute(text("SELECT status FROM application_tasks WHERE job_id=:id"),{"id":jid}).first()
+            if not job:return {"error":"Job not found."},404
+            if not task:return {"error":"Prepare this opportunity in the Auto-Apply Queue first."},409
+            if job[0] in _TERMINAL or task[0] in ("submitted","user_reported","processing","unknown"):
+                return {"error":"Already submitted, closed or uncertain; do not duplicate."},409
+            c.execute(text("""UPDATE application_tasks SET status='user_reported',
+                 reason='Owner reported submission on employer site; not API-verified',
+                 receipt=:ref,attempted_at=:ts,updated_at=:ts WHERE job_id=:id"""),
+                 {"ref":reference,"ts":now(),"id":jid})
+            c.execute(text("UPDATE jobs SET status='Applied',updated=:ts WHERE id=:id"),
+                {"id":jid,"ts":now()})
+        return {"ok":True,"status":"user_reported","employer_api_verified":False}
+
     @app.post("/api/autoapply/run")
     def auto_run():
         check_origin()
