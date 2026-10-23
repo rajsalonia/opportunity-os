@@ -223,3 +223,38 @@ body{background:radial-gradient(ellipse at 90% 0%,#202e5435,transparent 35%),var
   .brief-filter{font-size:.73rem;padding:8px 10px}
   .daily-brief-card{min-height:unset;padding:17px}}
 @media(prefers-reduced-motion:reduce){.brief-filter,.radar-card{transition:none}.radar-card:hover{transform:none}}
+
+
+/* Workspace-wide hierarchy + keyboard accessibility pass. */
+.nav-links>a,.settings-link{font-size:12px;letter-spacing:.002em}
+.workspace-label{font-size:12px;border-radius:12px}
+.workspace-label small,.sidebar-profile small{font-size:10px}
+.nav-heading{font-size:9px}
+.topbar .breadcrumb,.topbar .breadcrumb strong{font-size:12px}
+.global-search input{font-size:12px}
+.integration-indicator{font-size:11px}
+.page-heading p{font-size:13px;line-height:1.65}
+.heading-actions .button{font-size:11px}
+.panel-heading{padding-top:23px}
+.panel-heading h2{font-size:15px}
+.panel-heading p{font-size:12px;line-height:1.6}
+.panel-footnote,.page-footnote{font-size:11px;line-height:1.7}
+.metric-top{font-size:12px}
+.metric-caption{font-size:10px}
+.metric-card strong{font-size:32px}
+.recommended-copy p,.activity-row small{font-size:11px}
+.recommended-row .job-title-button{font-size:13px}
+.job-card{border-radius:15px}
+.job-card .job-title-button{font-size:17px}
+.company-name{font-size:12px}
+.job-card-meta{font-size:11px}
+.job-card-bottom .button{font-size:11px}
+.action-copy strong,.action-item strong{font-size:12px}
+.action-copy small,.deadline-row p{font-size:11px}
+.radar-card h3{font-size:15px}
+.radar-card p{font-size:12px}
+.radar-card-actions .button{min-height:34px}
+.input-caption,.small-text{line-height:1.6}
+button:focus-visible,a:focus-visible{outline:2px solid #adc2ff;outline-offset:3px}
+@media(max-width:760px){.page-heading p{font-size:12px}.panel-heading{padding:18px 17px 14px}
+  .metric-top{font-size:11px}.job-card{padding:16px}}
