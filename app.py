@@ -45,6 +45,33 @@ try:initialize_storage()
 except (OperationalError,InterfaceError):
  # Keep the sign-in screen reachable and retry after configuration is corrected.
  app.logger.warning("Storage unavailable at startup; check DATABASE_URL privately in Render.")
+# Candidate company boards are checked live; invalid or retired slugs report errors.
+GLOBAL_BOARD_CANDIDATES=[
+ ("greenhouse","gitlab","GitLab"),("greenhouse","datadog","Datadog"),
+ ("greenhouse","reddit","Reddit"),("greenhouse","roblox","Roblox"),
+ ("greenhouse","affirm","Affirm"),("greenhouse","coinbase","Coinbase"),
+ ("greenhouse","duolingo","Duolingo"),("greenhouse","plaid","Plaid"),
+ ("greenhouse","grammarly","Grammarly"),("greenhouse","discord","Discord"),
+ ("greenhouse","samsara","Samsara"),("greenhouse","asana","Asana"),
+ ("greenhouse","brex","Brex"),("greenhouse","airtable","Airtable"),
+ ("greenhouse","dropbox","Dropbox"),("greenhouse","twilio","Twilio"),
+ ("greenhouse","zapier","Zapier"),("greenhouse","hashicorp","HashiCorp"),
+ ("greenhouse","elastic","Elastic"),("greenhouse","miro","Miro"),
+ ("greenhouse","snowflake","Snowflake"),("greenhouse","ripple","Ripple"),
+ ("greenhouse","vanta","Vanta"),("lever","netlify","Netlify"),
+ ("lever","docker","Docker"),("lever","circleci","CircleCI"),
+ ("lever","grafana","Grafana"),("lever","palantir","Palantir"),
+ ("lever","robinhood","Robinhood"),("lever","atlassian","Atlassian"),
+ ("lever","coursera","Coursera"),("ashby","linear","Linear"),
+ ("ashby","ramp","Ramp"),("ashby","perplexity","Perplexity"),
+ ("ashby","openai","OpenAI"),("ashby","replit","Replit"),
+ ("ashby","cursor","Cursor"),("ashby","vercel","Vercel"),
+ ("ashby","notion","Notion"),("ashby","deel","Deel"),
+ ("ashby","remote","Remote"),("ashby","mercury","Mercury"),
+ ("ashby","supabase","Supabase"),("ashby","resend","Resend"),
+ ("ashby","clerk","Clerk")
+]
+from global_discovery import FEEDS as PUBLIC_REMOTE_FEEDS, fetch_public_feed, work_details
 boards=[
  ("greenhouse","stripe","Stripe"),("greenhouse","figma","Figma"),
  ("greenhouse","cloudflare","Cloudflare"),("greenhouse","notion","Notion"),
@@ -66,7 +93,7 @@ def plain_description(value):
  # Employer feeds sometimes entity-encode their HTML. Return text, never markup.
  decoded=html.unescape(html.unescape(str(value or "")))
  decoded=re.sub(r"(?i)<br\s*/?>|</(?:p|div|li|h[1-6]|ul|ol)\s*>","\n",decoded)
- return html.unescape(re.sub(r"<[^>]*>","",decoded))[:5000].strip()
+ return html.unescape(re.sub(r"<[^>]*>","",decoded))[:12000].strip()
 def rank(title,descr,location):
  title=title.lower(); descr=descr.lower();loc=location.lower()
  score=28 if roles.search(title) else 0
@@ -152,8 +179,13 @@ def jobs():
  search=request.args.get("q","").lower()[:100]; status=request.args.get("status","")[:32]
  if search:data=[x for x in data if search in " ".join([x["title"],x["company"],x["location"] or ""]).lower()]
  if status:data=[x for x in data if x["status"]==status]
- for item in data:item["description"]=plain_description(item.get("description"))
- data.sort(key=lambda x: x["score"] or 0,reverse=True)
+ for item in data:
+  item["description"]=plain_description(item.get("description"))
+  item.update(work_details(item.get("location"),item.get("description"),
+      remote_flag=item.get("provider") in ("jobicy","remotive")))
+  item["description_preview"]=item["description"][:380]
+  item["description_length"]=len(item["description"])
+ data.sort(key=lambda x: (x["work_mode"]=="Remote",x["score"] or 0),reverse=True)
  return {"jobs":data,"count":len(data),"limit":2000}
 @app.get("/api/summary")
 def summary():
@@ -219,7 +251,7 @@ def collect(board):
    score,warning=rank(title,desc,loc)
    found.append({"id":hashlib.sha256(link.encode()).hexdigest()[:32],"company":company,
     "title":title[:200],"location":loc[:200],"url":link,"provider":provider,
-    "description":desc[:5000],"score":score,"warnings":warning})
+    "description":desc[:12000],"score":score,"warnings":warning})
   return found,None
  except Exception as e:return [],company+" unavailable"
 @app.post("/api/refresh")
@@ -386,8 +418,8 @@ def get_sources():
  owner()
  with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(source_table.select().order_by(source_table.c.name))]
  return {"sources":rows,"default_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in boards],
-         "extended_boards":[{"provider":"ashby","slug":s,"name":n} for s,n in
-                            [("ramp","Ramp"),("linear","Linear"),("perplexity","Perplexity"),("openai","OpenAI")]]}
+         "extended_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in GLOBAL_BOARD_CANDIDATES],
+         "public_feeds":[{"provider":p,"name":n,"url":u} for p,n,u in PUBLIC_REMOTE_FEEDS]}
 @app.post("/api/sources")
 def put_source():
  check_origin();body=request.get_json(silent=True) or {}
@@ -416,9 +448,7 @@ def refresh_extended():
 def refresh_extended_impl():
  with db.connect() as c:
   rows=[(r["provider"],r["slug"],r["name"]) for r in c.execute(source_table.select()).mappings()]
- additional=[("ashby","ramp","Ramp"),("ashby","linear","Linear"),
-             ("ashby","perplexity","Perplexity"),("ashby","openai","OpenAI")]
- batch=list({(p,s):(p,s,n) for p,s,n in (boards+rows+additional)}.values())[:35]
+ batch=list({(p,s):(p,s,n) for p,s,n in (boards+rows+GLOBAL_BOARD_CANDIDATES)}.values())[:75]
  def get_board(entry):
   provider,slug,company=entry
   if provider in ("greenhouse","lever"):return collect(entry)
@@ -441,7 +471,11 @@ def refresh_extended_impl():
      "url":link,"provider":"ashby","description":desc,"score":score,"warnings":warning})
    return found,None
   except Exception:return [],company+" unavailable"
- with ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(get_board,batch))
+ # Daily refresh respects public feed limits and attribution.
+ with ThreadPoolExecutor(max_workers=12) as pool:
+  board_futures=[pool.submit(get_board,b) for b in batch]
+  feed_futures=[pool.submit(fetch_public_feed,source,rank) for source in PUBLIC_REMOTE_FEEDS]
+  results=[f.result() for f in board_futures+feed_futures]
  added=0;errors=[]
  with db.begin() as c:
   for rows,error in results:
@@ -453,7 +487,7 @@ def refresh_extended_impl():
     VALUES(:id,:company,:title,:location,:url,:provider,:description,:score,:warnings,'Discovered','','',:ts,:ts)
     ON CONFLICT(id) DO UPDATE SET title=excluded.title,location=excluded.location,description=excluded.description,
     score=excluded.score,warnings=excluded.warnings,updated=excluded.updated"""),r|{"ts":now()})
- return {"new":added,"checked":len(batch),"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
+ return {"new":added,"checked":len(batch)+len(PUBLIC_REMOTE_FEEDS),"feeds":[p for p,_,_ in PUBLIC_REMOTE_FEEDS],"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
 
 @app.post("/api/contacts/import")
 def import_hr_contacts():
