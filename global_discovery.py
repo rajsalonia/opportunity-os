@@ -14,7 +14,6 @@ FEEDS=(
     ("jobicy","Jobicy","https://jobicy.com/api/v2/remote-jobs"),
     ("remotive","Remotive","https://remotive.com/api/remote-jobs"),
     ("arbeitnow","Arbeitnow","https://www.arbeitnow.com/api/job-board-api"),
-    ("weworkremotely","We Work Remotely","https://weworkremotely.com/remote-jobs.rss"),
 )
 REMOTE_TERMS=re.compile(r"\b(remote|work from anywhere|work from home|distributed|wfh|fully remote)\b",re.I)
 INDIA_TERMS=re.compile(r"\b(india|indian|delhi|noida|gurgaon|gurugram|ncr|pune|mumbai|hyderabad|bengaluru|bangalore|chennai|kolkata)\b",re.I)
