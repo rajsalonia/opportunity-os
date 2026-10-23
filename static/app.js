@@ -86,7 +86,7 @@
 
   const STAGES = ['Discovered','Saved','Draft ready','Applied','Assessment','Interview','Offer','Rejected','Closed'];
   const PAGE_TITLES = {overview:'Overview',radar:'Opportunity Radar',explore:'Explore opportunities',applications:'My applications',contacts:'Recruiter CRM',gmail:'Gmail & outreach',resume:'Resume vault',sources:'Career sources',settings:'Settings & integrations'};
-  const state = {jobs:null,radar:null,radarCategory:'all',radarLimit:48,radarScanning:false,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,page:'overview',limit:24,view:'board',refreshing:false};
+  const state = {jobs:null,radar:null,radarCategory:'all',radarLimit:48,radarScanning:false,summary:null,alerts:null,contacts:null,caps:null,sources:null,sent:null,messages:null,gmailOutbox:null,page:'overview',limit:24,view:'board',refreshing:false};
   const options = (selected, stages = STAGES) => stages.map(stage => `<option${stage === selected ? ' selected' : ''}>${esc(stage)}</option>`).join('');
   $('#stage-filter').insertAdjacentHTML('beforeend', options(''));
   $('#application-stage').insertAdjacentHTML('beforeend', options('',STAGES.slice(1)));
@@ -350,8 +350,20 @@
     }).join('') + feeds.map(feed => '<div class="source-row"><div><strong>'+esc(feed.name)+'</strong><small>Worldwide remote public feed · '+esc(feed.provider)+'</small></div><span class="mini-tag">PUBLIC API</span><a class="icon-button" href="'+esc(safeUrl(feed.url))+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+esc(feed.name)+' source">'+icon('external')+'</a></div>').join('');
   }
   function renderSent() {
-    if (!state.sent) return;
-    $('#sent-emails').innerHTML = state.sent.length ? state.sent.map(email => `<article class="message-row"><h3>${esc(email.subject)}</h3><small>${esc(email.recipient)} · ${esc(shortTime(email.sent_at))}</small><span class="badge positive">${esc(email.status)}</span></article>`).join('') : empty('No sent messages yet','Emails you explicitly review and send here will be recorded in this history.','send','',true);
+    const local=state.sent||[],outbox=state.gmailOutbox||[];
+    const seen=new Set();
+    const merged=[
+      ...outbox.map(mail=>({id:mail.id,subject:mail.subject,recipient:mail.to,
+        date:mail.date,source:'Gmail Sent · delivery unverified'})),
+      ...local.map(mail=>({id:mail.gmail_id,subject:mail.subject,recipient:mail.recipient,
+        date:mail.sent_at,source:'Sent from Opportunity OS'}))
+    ].filter(mail=>{const key=mail.id||mail.recipient+mail.subject;
+      if(seen.has(key))return false;seen.add(key);return true;});
+    $('#sent-emails').innerHTML=merged.length?merged.slice(0,70).map(mail=>
+      '<article class="message-row"><h3>'+esc(mail.subject||'Application outreach')+'</h3>'+
+      '<small>'+esc(mail.recipient||'Recipient unavailable')+' · '+esc(shortTime(mail.date))+'</small>'+
+      '<span class="badge">'+esc(mail.source)+'</span></article>').join(''):
+      empty('No synced sent messages','Connect Gmail and choose Check replies to sync recent outgoing messages. Existing Opportunity OS sends will appear here.','send','',true);
   }
 
   function renderAutomation() {
@@ -767,9 +779,10 @@
     await busy(event.currentTarget,async () => {
       try {
         const result = await api('/api/gmail/updates'); state.messages = result.messages;
+        state.gmailOutbox=result.outbox||[];renderSent();
         state.caps.gmail_last_checked = result.checked_at;
         $('#gmail-last-checked').textContent = 'Last checked: ' + shortTime(result.checked_at);
-        $('#gmail-messages').innerHTML = result.messages.length ? result.messages.map(message => `<article class="message-row"><h3>${esc(message.subject || '(No subject)')}</h3><small>${esc(message.from)} · ${esc(shortTime(message.date))}</small><span class="badge violet">${esc(message.stage)}</span><p>${esc(message.snippet)}</p><a class="text-link" href="https://mail.google.com/mail/u/0/#all/${encodeURIComponent(message.id)}" target="_blank" rel="noopener noreferrer">Review in Gmail ↗</a></article>`).join('') : empty('No recent matching replies','No relevant messages were returned from the past 21 days. No email was sent.','mail','',true);
+        $('#gmail-messages').innerHTML = result.messages.length ? result.messages.map(message => `<article class="message-row"><h3>${esc(message.subject || '(No subject)')}</h3><small>${esc(message.from)} · ${esc(shortTime(message.date))}</small><span class="badge violet">${esc(message.stage)}</span>${message.possible_reply?'<span class="badge positive">Possible reply to outreach</span>':''}<p>${esc(message.snippet)}</p><small>${esc(message.reply_evidence||'Verify message context.')}</small><a class="text-link" href="https://mail.google.com/mail/u/0/#all/${encodeURIComponent(message.id)}" target="_blank" rel="noopener noreferrer">Review in Gmail ↗</a></article>`).join('') : empty('No recent matching replies','No relevant messages were returned from the past 21 days. No email was sent.','mail','',true);
         if (result.failed) $('#gmail-messages').insertAdjacentHTML('afterbegin',`<div class="detail-callout">${Number(result.failed)} messages could not be retrieved. These results are incomplete; check Gmail directly.</div>`);
         toast(result.failed ? `${result.failed} messages could not be loaded. Review the partial results in Gmail.` : 'Recruiter replies checked. No email was sent.',Boolean(result.failed));
       } catch (error) { $('#gmail-messages').innerHTML = empty('We couldn’t check your inbox',error.message,'info','',true); toast(error.message,true); }
