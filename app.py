@@ -137,8 +137,8 @@ def updatejob(jid):
  with db.begin() as c:
   row=c.execute(text("SELECT id FROM jobs WHERE id=:id"),{"id":jid}).first()
   if not row:return {"error":"Not found"},404
-  c.execute(text("UPDATE jobs SET status=:st,notes=:no,updated=:ts WHERE id=:id"),
-    {"st":status,"no":str(body.get("notes",""))[:4000],"ts":now(),"id":jid})
+  c.execute(text("UPDATE jobs SET status=:st,notes=COALESCE(:no,notes),updated=:ts WHERE id=:id"),
+    {"st":status,"no":str(body["notes"])[:4000] if "notes" in body else None,"ts":now(),"id":jid})
  return {"ok":True}
 @app.delete("/api/jobs/<jid>")
 def deletejob(jid):
