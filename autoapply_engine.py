@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 import requests
+from application_profile import application_pack, clean_public_details, PUBLIC_PROFESSIONAL_PROFILE
 from cryptography.fernet import Fernet, InvalidToken
 from flask import request, abort
 from sqlalchemy import text
@@ -259,6 +260,8 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
                 "resume_ready":bool(doc),"tasks":list_tasks(),
                 "greenhouse_keys_configured":bool(os.getenv("GREENHOUSE_BOARD_KEYS_JSON")),
                 "scheduled_trigger_configured":bool(os.getenv("OPPORTUNITY_OS_CRON_TOKEN")),
+                "professional_defaults":PUBLIC_PROFESSIONAL_PROFILE,
+                "professional_profile":{k:p[k] for k in ("college","degree","city","country","linkedin","github","portfolio","cgpa","percentage","gpa_scale","passing_month","primary_project") if p and k in p},
                 "supported_submission":"Employer-authorized Greenhouse Job Board API only. Lever/Ashby require manual form completion until authorized adapters exist."}
 
     @app.post("/api/autoapply/settings")
@@ -271,7 +274,19 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             if not valid_profile(p):
                 return {"error":"Enter your verified legal name, email, phone, 2028 graduation year and explicit India work authorization and submission approval."},422
             approved={k:p[k] for k in ("first_name","last_name","email","phone","graduation_year","work_authorized_india","approved_for_employer_submission")}
+            # Optional academic and professional fields are added in a second step.
+            previous=profile() or {}
+            approved.update({k:previous[k] for k in ("college","degree","city","country","linkedin","github","portfolio","cgpa","percentage","gpa_scale","passing_month","primary_project") if k in previous})
             put_setting("autoapply_profile_v1",cipher.encrypt(json.dumps(approved).encode()).decode())
+        if "professional" in data:
+            if not cipher:return {"error":"Stable SESSION_SECRET required to encrypt your profile."},503
+            existing=profile()
+            if not valid_profile(existing):
+                return {"error":"Approve your legal contact and work authorization profile first."},422
+            try:professional=clean_public_details(data["professional"])
+            except ValueError as error:return {"error":str(error)},422
+            existing.update(professional)
+            put_setting("autoapply_profile_v1",cipher.encrypt(json.dumps(existing).encode()).decode())
         rule=rules()
         if "enabled" in data:
             if not isinstance(data["enabled"],bool):return {"error":"enabled must be true or false"},422
@@ -288,6 +303,23 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             rule["max_daily"]=data["max_daily"]
         put_setting("autoapply_rules_v1",json.dumps(rule))
         return {"rules":rule,"profile_ready":valid_profile(profile())}
+
+    @app.get("/api/autoapply/pack/<jid>")
+    def get_autofill_pack(jid):
+        owner();ensure()
+        with db.connect() as c:
+            job=c.execute(text("""SELECT id,company,title,location,url,provider
+                  FROM jobs WHERE id=:id"""),{"id":jid}).mappings().first()
+        if not job:return {"error":"Job not found"},404
+        item=application_pack(dict(job),profile(),bool(get_resume()))
+        # A generated pack does not imply the employer has received an application.
+        if request.args.get("download")=="1":
+            from io import BytesIO
+            from flask import send_file
+            body=json.dumps(item,ensure_ascii=False,indent=2).encode("utf-8")
+            return send_file(BytesIO(body),mimetype="application/json",as_attachment=True,
+                download_name="opportunity-os-application-pack.json")
+        return item
 
     @app.post("/api/autoapply/prepare")
     def auto_prepare():
