@@ -28,7 +28,7 @@ _UUID = re.compile(r"^[a-z0-9_-]{2,90}$")
 _VALID_EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _TERMINAL = {"Applied", "Assessment", "Interview", "Offer", "Rejected", "Closed"}
 
-def register(app, db, owner, check_origin, now, has_persistent_db, resume_table):
+def register(app, db, owner, check_origin, now, has_persistent_db, resume_table, refresh_employers=None):
     secret = os.getenv("SESSION_SECRET", "")
     cipher = Fernet(base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest())) if secret else None
 
@@ -316,5 +316,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table)
         if not configured or not hmac.compare_digest(configured,candidate):abort(403)
         # Free-tier Render instances sleep; invoke from a trusted external scheduler.
         # Queue refresh is performed separately in the dashboard, never by an unauthenticated caller.
+        if refresh_employers is not None:
+            refresh_employers()
         make_queue(150)
         return run_queue(limit=2)
