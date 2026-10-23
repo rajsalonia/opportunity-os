@@ -210,3 +210,50 @@ def test_invalid_backup_is_rejected_without_crashing():
 def test_encoded_employer_descriptions_are_readable_plain_text():
     content = '&lt;p&gt;Python &amp;amp; AI&lt;/p&gt;&lt;p&gt;Graduation 2028&lt;/p&gt;'
     assert mod.plain_description(content) == 'Python & AI\nGraduation 2028'
+
+
+def test_radar_is_private_and_saved_public_links_are_review_only():
+    assert app.test_client().get('/api/radar').status_code == 401
+    client=signed_in()
+    page=client.get('/').data.decode()
+    assert 'id="page-radar"' in page
+    assert 'id="radar-list"' in page
+    snapshot=client.get('/api/radar')
+    assert snapshot.status_code == 200
+    assert len(snapshot.json['sources']) >= 6
+    no_good=client.post('/api/radar/save',json={'title':'Example Job','url':'javascript:alert(1)','category':'Internship'})
+    assert no_good.status_code == 422
+    response=client.post('/api/radar/save',json={
+      'title':'Startup backend internship announced','category':'Internship',
+      'url':'https://www.linkedin.com/posts/company/example-new-hiring-2026',
+      'summary':'Public post from a startup; verify listing availability.'})
+    assert response.status_code == 200
+    uid=response.json['id']
+    details=client.get('/api/radar').json['items']
+    item=next(i for i in details if i['id']==uid)
+    assert item['state']=='saved'
+    assert 'not an application' in item['verification']
+    bad=client.patch('/api/radar/'+uid,json={'state':'submitted'})
+    assert bad.status_code==422
+    assert client.patch('/api/radar/'+uid,json={'state':'dismissed'}).status_code==200
+
+
+def test_gmail_reply_matching_is_not_application_confirmation(monkeypatch):
+    def fake_gmail(method,path,payload=None):
+        if path.startswith('messages?q='):
+            key='sent-item' if 'in%3Asent' in path else 'reply-item'
+            return {'messages':[{'id':key}]}
+        if path.startswith('messages/sent-item'):
+            return {'payload':{'headers':[{'name':'To','value':'Hiring <recruiter@example.org>'},
+                                          {'name':'Subject','value':'Internship application'}]},
+                    'threadId':'thread-1'}
+        return {'payload':{'headers':[{'name':'From','value':'Recruiter <recruiter@example.org>'},
+                                      {'name':'Subject','value':'Interview invitation'}]},
+                'snippet':'Please review the meeting details.'}
+    monkeypatch.setattr(mod,'gmail_req',fake_gmail)
+    result=signed_in().get('/api/gmail/updates')
+    assert result.status_code==200
+    assert result.json['outbox'][0]['to']=='Hiring <recruiter@example.org>'
+    assert result.json['messages'][0]['possible_reply'] is True
+    assert result.json['messages'][0]['stage']=='Possible interview'
+    assert 'submitted' not in str(result.json).lower()
