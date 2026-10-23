@@ -433,7 +433,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
     # and the profile can be retried on the next owner-authenticated status request.
     try:
         if import_user_confirmed_profile_from_private_env():
-            app.logger.info("Private applicant contact import verified in encrypted storage.")
+            app.logger.warning("Applicant profile initialization confirmed in encrypted database; no contact details logged.")
     except (OperationalError,InterfaceError):
         app.logger.warning("Private applicant profile import deferred: database unavailable.")
 
