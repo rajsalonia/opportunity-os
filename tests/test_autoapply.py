@@ -248,3 +248,21 @@ def test_professional_fields_persist_encrypted_and_reject_unverified_grade(clien
     assert "demo@example.test" not in encrypted
     assert client.get("/api/autoapply/pack/eligible").json["education"]["cgpa"]=="8.4"
     assert client.post("/api/autoapply/settings",json={"professional":{"cgpa":"9.0 SGPA"}}).status_code==422
+
+
+def test_owner_reported_manual_application_has_separate_receipt_status(client_and_db):
+    client,db=client_and_db
+    authenticate(client)
+    client.post("/api/autoapply/prepare")
+    assert client.post("/api/autoapply/confirm-manual/eligible",json={"submitted_by_owner":True}).status_code==422
+    assert client.post("/api/autoapply/confirm-manual/eligible",
+        json={"submitted_by_owner":True,"reference":"Sample acknowledgment email #1234"}).status_code==200
+    tasks=client.get("/api/autoapply").json["tasks"]
+    row=next(t for t in tasks if t["job_id"]=="eligible")
+    assert row["status"]=="user_reported"
+    assert row["receipt"]=="Sample acknowledgment email #1234"
+    assert row["status"]!="submitted"
+    with db.connect() as c:
+        assert c.scalar(text("SELECT status FROM jobs WHERE id='eligible'"))=="Applied"
+    assert client.post("/api/autoapply/confirm-manual/eligible",
+        json={"submitted_by_owner":True,"reference":"Duplicate submission"}).status_code==409
