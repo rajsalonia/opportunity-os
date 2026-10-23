@@ -432,7 +432,8 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
     # Private migration is idempotent. A failed DB connection leaves the app up
     # and the profile can be retried on the next owner-authenticated status request.
     try:
-        import_user_confirmed_profile_from_private_env()
+        if import_user_confirmed_profile_from_private_env():
+            app.logger.info("Private applicant contact import verified in encrypted storage.")
     except (OperationalError,InterfaceError):
         app.logger.warning("Private applicant profile import deferred: database unavailable.")
 
