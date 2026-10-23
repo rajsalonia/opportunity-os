@@ -20,7 +20,7 @@ def ingest(db, timestamp, inbox, outbox):
                if str(m.get("gmail_thread_id") or "")}
  sent_emails={addr.lower() for row in outbox for _,addr in
               getaddresses([str(row.get("to") or "")]) if addr}
- processed=0
+ processed=0;possible_count=0
  with db.begin() as c:
   for mail in outbox[:100]:
    mid=str(mail.get("id") or "")
@@ -47,6 +47,7 @@ def ingest(db, timestamp, inbox, outbox):
    on_thread=bool(thread and thread in sent_threads and sender)
    direct=bool(sender and sender in sent_emails)
    possible_reply=(on_thread or direct) and not bool(re.search(r"no.?reply|donotreply",sender,re.I))
+   if possible_reply:possible_count+=1
    why=("Same Gmail conversation thread as sent outreach" if on_thread else
         "Sender matches an outgoing recipient" if direct else
         "Not matched to an outgoing message")
@@ -67,10 +68,7 @@ def ingest(db, timestamp, inbox, outbox):
       "reply":why if possible_reply else "Not matched to outgoing outreach",
       "updated":timestamp})
    processed+=1
- return {"processed":processed,"possible_replies":sum(bool(
-    (str(m.get("thread_id") or "") in sent_threads or
-      parseaddr(str(m.get("from") or ""))[1].lower() in sent_emails))
-    for m in inbox)}
+ return {"processed":processed,"possible_replies":possible_count}
 
 def snapshot(db):
  ensure(db)
