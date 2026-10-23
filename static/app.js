@@ -357,6 +357,26 @@
   function renderAutomation() {
     const data=state.autoapply, node=$('#auto-queue');
     if (!data) { $('#auto-overview').textContent='Queue is unavailable; check your database connection.'; return; }
+    const defaults=data.professional_defaults || {}, professional=data.professional_profile || {}, contact=data.profile_contact || {};
+    const fieldValues={
+      '#auto-first':contact.first_name || 'Raj', '#auto-last':contact.last_name || 'Salonia',
+      '#auto-email':contact.email || '', '#auto-phone':contact.phone || '',
+      '#auto-linkedin':professional.linkedin ?? defaults.linkedin ?? '',
+      '#auto-github':professional.github ?? defaults.github ?? '',
+      '#auto-portfolio':professional.portfolio ?? defaults.portfolio ?? '',
+      '#auto-college':professional.college ?? defaults.college ?? '',
+      '#auto-degree':professional.degree ?? defaults.degree ?? '',
+      '#auto-city':professional.city ?? defaults.city ?? '',
+      '#auto-country':professional.country ?? defaults.country ?? '',
+      '#auto-cgpa':professional.cgpa ?? '', '#auto-percentage':professional.percentage ?? '',
+      '#auto-graduation-month':professional.passing_month ?? ''
+    };
+    for(const [selector,value] of Object.entries(fieldValues)){
+      const element=$(selector);
+      if(element && document.activeElement!==element) element.value=String(value);
+    }
+    $('#auto-work-auth').checked=data.profile_work_authorized_india===true;
+    $('#auto-consent').checked=data.profile_ready===true;
     const r=data.rules || {};
     $('#auto-match').value=String(r.minimum_match || 75);
     $('#auto-daily').value=String(r.max_daily || 2);
@@ -377,11 +397,12 @@
       const reason=esc(item.reason || '');
       const title=esc(item.company)+' — '+esc(item.title);
       const open=link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer" class="button small">Official application ↗</a>' : '';
+      const pack='<a href="/api/autoapply/pack/'+encodeURIComponent(item.job_id)+'?download=1" class="button small" title="Download reusable autofill profile, not a submitted application">Autofill pack ↓</a>';
       const approve=item.status==='needs_review' ? '<button class="button small" type="button" data-auto-approve="'+esc(item.job_id)+'">I verified eligibility</button>' : '';
       const receipt=item.receipt ? '<small>Employer confirmation: '+esc(item.receipt)+'</small>' : '';
       const when=item.attempted_at ? '<small>Attempted: '+esc(shortTime(item.attempted_at))+'</small>' : '';
       const submitted=item.status==='submitted' ? '<span class="badge positive">Confirmed submitted</span>' : '';
-      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+when+submitted+'</div><div class="automation-task-actions">'+open+approve+'</div></article>';
+      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+when+submitted+'</div><div class="automation-task-actions">'+open+pack+approve+'</div></article>';
     }).join('') : '<p class="muted">No applications in this view. Choose All applications or refresh eligible opportunities.</p>';
   }
   $('#auto-history-filter').addEventListener('change',renderAutomation);
@@ -428,7 +449,14 @@
           first_name:$('#auto-first').value.trim(),last_name:$('#auto-last').value.trim(),
           email:$('#auto-email').value.trim(),phone:$('#auto-phone').value.trim(),
           graduation_year:'2028',work_authorized_india:$('#auto-work-auth').checked,
-          approved_for_employer_submission:$('#auto-consent').checked}});
+          approved_for_employer_submission:$('#auto-consent').checked},
+          professional:{
+            linkedin:$('#auto-linkedin').value.trim(),github:$('#auto-github').value.trim(),
+            portfolio:$('#auto-portfolio').value.trim(),college:$('#auto-college').value.trim(),
+            degree:$('#auto-degree').value.trim(),city:$('#auto-city').value.trim(),
+            country:$('#auto-country').value.trim(),cgpa:$('#auto-cgpa').value.trim(),
+            percentage:$('#auto-percentage').value.trim(),
+            passing_month:$('#auto-graduation-month').value.trim()}});
         $('#auto-feedback').textContent='Private applicant profile encrypted and saved.';await reloadAutomation();
       } catch(error){toast(error.message,true);}
     },'Encrypting…');
@@ -509,7 +537,7 @@
     $('#detail-stage').value = job.status;
     $('#detail-notes').value = job.notes || '';
     $('#detail-deadline').value = dateOnly(job.deadline);
-    $('#job-detail-content').innerHTML = `<div class="detail-company">${avatar(job.company)}<div><strong>${esc(job.company)}</strong><small>${esc(job.provider || 'Source not recorded')} · Added ${esc(shortDate(job.discovered))}</small></div></div><h2 id="job-dialog-title">${esc(job.title)}</h2><div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span><span class="match-pill">${score(job)}/100 estimated match</span>${job.work_mode ? '<span class="badge">'+esc(job.work_mode)+'</span>' : ''}${job.work_mode === 'Remote' ? '<span class="badge">'+esc(job.remote_scope || 'Region unverified')+'</span>' : ''}</div>${officialLink(job,'button primary','Open official listing')}<div class="detail-callout">${esc(job.warnings || 'Graduation year and work authorization have not been verified.')} Check the official listing for eligibility, location requirements, and current availability. A match score is a keyword estimate.</div><div class="detail-description">${esc(job.description || 'No role description is available from this source. Open the original listing for the full details.')}</div>`;
+    $('#job-detail-content').innerHTML = `<div class="detail-company">${avatar(job.company)}<div><strong>${esc(job.company)}</strong><small>${esc(job.provider || 'Source not recorded')} · Added ${esc(shortDate(job.discovered))}</small></div></div><h2 id="job-dialog-title">${esc(job.title)}</h2><div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span><span class="match-pill">${score(job)}/100 estimated match</span>${job.work_mode ? '<span class="badge">'+esc(job.work_mode)+'</span>' : ''}${job.work_mode === 'Remote' ? '<span class="badge">'+esc(job.remote_scope || 'Region unverified')+'</span>' : ''}</div>${officialLink(job,'button primary','Open official listing')}<a class="button" href="/api/autoapply/pack/${encodeURIComponent(job.id)}?download=1">Download autofill pack ↓</a><div class="detail-callout">${esc(job.warnings || 'Graduation year and work authorization have not been verified.')} Check the official listing for eligibility, location requirements, and current availability. A match score is a keyword estimate.</div><div class="detail-description">${esc(job.description || 'No role description is available from this source. Open the original listing for the full details.')}</div>`;
     openDialog('#job-dialog');
   }
   $('#job-detail-form').addEventListener('submit',async event => {
