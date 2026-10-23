@@ -60,3 +60,13 @@
 .automation-history-filters select{min-width:190px;max-width:100%;padding:.5rem .7rem;border-radius:8px}
 .detail-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;max-height:60vh;overflow-y:auto}
 @media(max-width:720px){.job-description-preview{-webkit-line-clamp:2}.automation-history-filters select{flex:1}}
+
+/* India-specific hiring directory; links open the publishers' own sites. */
+.india-platform-directory{margin-bottom:1.2rem}
+.india-portal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.65rem;margin-top:1rem}
+.india-portal-link{display:flex;flex-direction:column;gap:.45rem;min-height:116px;border:1px solid var(--border,rgba(148,163,184,.22));border-radius:12px;padding:1rem;color:inherit;text-decoration:none;background:rgba(127,127,127,.035);transition:border-color .15s,transform .15s}
+.india-portal-link:hover,.india-portal-link:focus-visible{border-color:var(--accent,#8b5cf6);transform:translateY(-2px)}
+.india-portal-link strong{font-size:.94rem}
+.india-portal-link small{opacity:.75;line-height:1.35}
+.india-portal-link .mini-tag{align-self:flex-start;font-size:.69rem}
+@media(max-width:520px){.india-portal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.india-portal-link{padding:.8rem;min-height:125px}}
