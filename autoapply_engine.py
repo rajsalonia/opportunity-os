@@ -23,7 +23,8 @@ _SAFE_FIELDS = {"first_name", "last_name", "email", "phone", "resume"}
 _BAD_LOCATION = re.compile(r"\b(USA|United States|Canada|Europe|London|Berlin|Germany|Australia|Singapore|US only|UK only)\b", re.I)
 _INDIA_LOCATION = re.compile(r"\b(India|Delhi|Gurugram|Gurgaon|Noida|Bengaluru|Bangalore|Hyderabad|Pune|Mumbai|Chennai|Kolkata|NCR)\b", re.I)
 _BAD_YEAR = re.compile(r"\b(?:only|exclusively)\s+(?:class of |graduates? of )?202[4567]\b|must graduate (?:in|by) 202[4567]", re.I)
-_GOOD_YEAR = re.compile(r"\b2028\b")
+_GOOD_YEAR = re.compile(r"\b(?:class of|graduating(?: in)?|graduates? in|students graduating(?: in)?|expected graduation(?: in)?|graduation year)\s*[:\-]?\s*2028\b|\b2028\s*(?:graduates?|graduation|cohort|class)\b", re.I)
+_EXCLUDED_2028 = re.compile(r"\b(?:not|no|excluding|ineligible|except)\b.{0,45}\b2028\b|\b2028\b.{0,40}\b(?:ineligible|excluded|not eligible)\b", re.I)
 _UUID = re.compile(r"^[a-z0-9_-]{2,90}$")
 _VALID_EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _TERMINAL = {"Applied", "Assessment", "Interview", "Offer", "Rejected", "Closed"}
@@ -94,7 +95,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
                 return "India-based or explicitly India-eligible remote location not confirmed."
         if _BAD_LOCATION.search(location) and not _INDIA_LOCATION.search(location):
             return "Location outside approved India scope."
-        if _BAD_YEAR.search(descr):return "Description may exclude your graduation year."
+        if _BAD_YEAR.search(descr) or _EXCLUDED_2028.search(descr):return "Description may exclude your graduation year."
         if not _GOOD_YEAR.search(descr):return "Graduation year 2028 is not confirmed in the listing."
         if job.get("warnings"):return "Employer eligibility warning needs manual review."
         if job.get("provider") not in ("greenhouse","lever","ashby"):
