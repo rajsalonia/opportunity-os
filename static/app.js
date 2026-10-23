@@ -472,10 +472,13 @@
     $('#radar-saved-count').textContent=countSaved;
     $('#radar-feed-count').textContent=state.radar?.sources?.length??6;
     const ts=state.radar?.checked_at;
-    $('#radar-freshness').textContent=ts?'Updated '+shortTime(ts):'Feed sync pending';
+    const failures=state.radar?.failed_sources||[];
+    $('#radar-freshness').textContent=failures.length ? failures.length+' source(s) temporarily unavailable' :
+      ts?'Checked '+shortTime(ts):'Feed sync pending';
     $('#radar-checked').textContent=ts?'Public feeds checked '+shortTime(ts):'Public feed check pending';
     $('#radar-sources').innerHTML=(state.radar?.sources||[]).map(x=>
       '<a href="'+esc(safeUrl(x.url))+'" target="_blank" rel="noopener noreferrer" class="radar-source-link"><span>'+esc(x.name)+'</span>'+icon('external')+'</a>').join('')+
+      (failures.length?'<p class="radar-outage">Temporarily unavailable: '+failures.map(esc).join(', ')+'</p>':'')+
       '<p class="muted">Listings are aggregated with source attribution; availability is never guaranteed.</p>';
     const query=$('#radar-search').value.toLowerCase().trim(),cat=state.radarCategory;
     const visible=all.filter(x=>(cat==='all'||(cat==='saved'?x.state==='saved':x.category===cat)) &&
@@ -499,7 +502,8 @@
       const response=await post('/api/radar/refresh');
       const next=await api('/api/radar');
       state.radar=next;renderRadar();
-      if(!quiet)toast(response.skipped?'Radar already up to date':response.new+' fresh signal(s) found.');
+      if(!quiet)toast(response.skipped?'Radar already up to date':response.new+' fresh signal(s) found.'+
+        (next.failed_sources?.length?' '+next.failed_sources.length+' feeds were unavailable.':''),Boolean(next.failed_sources?.length));
     }catch(error){
       if(!quiet)toast('Radar refresh unavailable: '+error.message,true);
       $('#radar-freshness').textContent='Feed refresh failed · existing listings kept';
