@@ -90,9 +90,12 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         if int(job.get("score") or 0)<minimum:return "Below minimum match threshold."
         location=str(job.get("location") or "")
         descr=str(job.get("description") or "")
+        global_remote=bool(re.search(r"\b(?:worldwide|anywhere in the world|work from anywhere|global remote|remote anywhere)\b",location,re.I))
+        india_excluded=bool(re.search(r"\b(?:not available in india|excluding india|india excluded|cannot hire in india)\b",location+" "+descr,re.I))
         if not _INDIA_LOCATION.search(location):
-            if not ("remote" in location.lower() and _INDIA_LOCATION.search(descr)):
-                return "India-based or explicitly India-eligible remote location not confirmed."
+            if not (("remote" in location.lower() and _INDIA_LOCATION.search(descr)) or (global_remote and not india_excluded)):
+                return "India-based or explicitly worldwide remote eligibility not confirmed."
+        if india_excluded:return "Employer explicitly excludes India."
         if _BAD_LOCATION.search(location) and not _INDIA_LOCATION.search(location):
             return "Location outside approved India scope."
         if _BAD_YEAR.search(descr) or _EXCLUDED_2028.search(descr):return "Description may exclude your graduation year."
@@ -119,7 +122,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         r=rules()
         with db.begin() as c:
             jobs=c.execute(text("""SELECT id,url,provider,score,status,description,location,warnings,
-                         company,title FROM jobs ORDER BY score DESC LIMIT :n"""),
+                         company,title FROM jobs ORDER BY CASE WHEN lower(location) LIKE '%remote%' OR lower(location) LIKE '%anywhere%' THEN 1 ELSE 0 END DESC, score DESC LIMIT :n"""),
                          {"n":max_jobs}).mappings().all()
             counters={"ready":0,"review":0,"existing":0}
             for job in jobs:
@@ -218,7 +221,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             # but never override explicit exclusions, closed jobs or match limits.
             owner_verified=bool(job.get("reviewed_at")) and reason in (
                 "Graduation year 2028 is not confirmed in the listing.",
-                "India-based or explicitly India-eligible remote location not confirmed.",
+                "India-based or explicitly worldwide remote eligibility not confirmed.",
                 "Employer eligibility warning needs manual review.")
             if reason and not owner_verified:
                 with db.begin() as c:
