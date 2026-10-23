@@ -80,3 +80,16 @@ The **Career Sources** screen now contains 20 India/global discovery platforms (
 An additional 28 India-focused employer-board candidates are included in the existing Greenhouse/Lever/Ashby public ATS refresh. Some candidate board identifiers may be inactive or not owned by the named company: failed boards are reported, and only actual returned job postings are saved. Never imply a board candidate is a verified open role.
 
 **Automation status**: public feed and employer ATS discovery is available from the Refresh button. Unattended daily refreshing still needs an authenticated external scheduler; adding the directory alone does not create one. Full auto-submission to every India job board is not available without supported employer APIs and/or authorized interactive integrations. Never claim a job was applied to until a real employer acknowledgment is recorded.
+
+
+## Job-specific application packs and local browser autofill companion
+
+From **My Applications → Auto-Apply Queue** or any Explore job detail, download an **Autofill pack**. This private JSON includes your approved contact details, BPIT degree (2028), LinkedIn, GitHub, portfolio, and the current four highlighted project repository links. It contains an original-resume download reference, but never embeds private PDF bytes or secrets. Each pack is explicitly marked **prepared_not_submitted**.
+
+In the private applicant form you can verify/change your college, degree, LinkedIn, GitHub, portfolio, city/country, cumulative CGPA, aggregate percentage and 2028 graduation month. Unknown grade and month remain **blank**. Prior 7.8 semester SGPA must not be used as cumulative CGPA or percentage. Applicant data is stored encrypted with your established SESSION_SECRET.
+
+For companies that do not provide an authorized API, use the optional **Chrome Autofill Companion** from the autofill_companion folder. It fills supported form fields on the currently selected official employer tab after your click; you can choose your original PDF for resume upload. Installation and supported fields are in autofill_companion/README.md. This does **not** auto-login, click Submit, bypass CAPTCHA, answer visas/legal questions, or run continuously across all job boards. You must review and submit the final form on the employer site.
+
+After submitting manually, use **Record manual submission** with the employer acknowledgement/reference. It is recorded as **owner-reported, not employer-API-verified**, and is displayed separately from real provider-verified submissions. Never claim a downloaded pack or filled form is submitted.
+
+This is an honest staged path to more coverage, not guaranteed universal auto-apply.
