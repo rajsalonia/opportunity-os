@@ -1,5 +1,5 @@
 import os, csv, io, hashlib, hmac, re, secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit
 from concurrent.futures import ThreadPoolExecutor
 import requests
@@ -9,6 +9,11 @@ from sqlalchemy.orm import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app=Flask(__name__)
+# Throttle repeated password attempts per worker; proxy IPs are trusted only through Render.
+from collections import defaultdict
+from threading import Lock
+login_failures=defaultdict(list)
+login_lock=Lock()
 app.config["SECRET_KEY"]=os.environ.get("SESSION_SECRET") or secrets.token_urlsafe(48)
 app.config["SESSION_COOKIE_SECURE"]=os.getenv("HTTPS_ONLY","true")=="true"
 app.config["SESSION_COOKIE_SAMESITE"]="Lax"
@@ -75,10 +80,17 @@ def whoami():return {"authenticated":bool(session.get("owner")),"storage":"persi
 @app.post("/api/login")
 def login():
  if not pw:return jsonify(error="APP_PASSWORD not configured"),503
+ client=request.remote_addr or "unknown"
+ with login_lock:
+  login_failures[client]=[t for t in login_failures[client] if time.time()-t<900]
+  if len(login_failures[client])>=10:
+   return jsonify(error="Too many login attempts; wait 15 minutes"),429
  entered=str((request.get_json(silent=True) or {}).get("password",""))
  if len(entered)>500:return jsonify(error="Invalid"),400
  if not hmac.compare_digest(hashlib.sha256(entered.encode()).digest(),hashlib.sha256(pw.encode()).digest()):
+  with login_lock:login_failures[client].append(time.time())
   return jsonify(error="Incorrect password"),401
+ with login_lock:login_failures.pop(client,None)
  session.clear();session["owner"]=True
  return {"ok":True}
 @app.post("/api/logout")
@@ -180,7 +192,7 @@ def outreach(jid):
  "sent":False,"note":"Draft only. Check eligibility and attach original resume before sending."}
 @app.post("/api/contacts")
 def contact():
- check_origin();j=request.get_json(silent=True) or {}
+ check_origin();persistent_only();j=request.get_json(silent=True) or {}
  email=str(j.get("email","")).strip()[:250]
  if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",email):return {"error":"Invalid email"},422
  entry={"id":secrets.token_hex(16),"company":str(j.get("company",""))[:150],
@@ -197,7 +209,11 @@ def export():
  owner()
  with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(text("SELECT * FROM jobs ORDER BY discovered DESC"))]
  out=io.StringIO(); keys=["company","title","location","url","provider","status","score","deadline","notes"]
- w=csv.DictWriter(out,fieldnames=keys,extrasaction="ignore");w.writeheader();w.writerows(rows)
+ w=csv.DictWriter(out,fieldnames=keys,extrasaction="ignore");w.writeheader()
+ # Avoid CSV formula injection if a recruiter opens the export in Excel.
+ for record in rows:
+  cleaned={k:("'" + str(record.get(k,"")) if isinstance(record.get(k),str) and str(record.get(k)).lstrip().startswith(("=","+","-","@")) else record.get(k,"")) for k in keys}
+  w.writerow(cleaned)
  return send_file(io.BytesIO(out.getvalue().encode()),mimetype="text/csv",as_attachment=True,download_name="opportunity-os.csv")
 
 
@@ -522,3 +538,93 @@ def gmail_sent():
  owner()
  with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(email_table.select().order_by(email_table.c.sent_at.desc()).limit(100)).mappings()]
  return {"emails":rows}
+
+
+# --- Dashboard alerts & application state backups ---
+@app.get("/api/alerts")
+def application_alerts():
+ owner()
+ with db.connect() as c: rows=[dict(x._mapping) for x in c.execute(text("SELECT id,company,title,url,status,discovered,updated,deadline FROM jobs LIMIT 2500"))]
+ today=datetime.now(timezone.utc).date()
+ alerts=[]
+ for row in rows:
+  base={"job_id":row["id"],"company":row["company"],"title":row["title"],"url":row["url"]}
+  if row["status"]=="Discovered":
+   try:
+    dt=datetime.fromisoformat(row.get("discovered") or "").date()
+    if 0<=(today-dt).days<=3: alerts.append({**base,"kind":"new","message":"Newly discovered role (eligibility not confirmed)"})
+   except ValueError:pass
+  if row["deadline"]:
+   try:
+    ddl=datetime.strptime(row["deadline"][:10],"%Y-%m-%d").date()
+    if 0 <= (ddl-today).days <= 7 and row["status"] not in ("Rejected","Closed","Offer"):
+     alerts.append({**base,"kind":"deadline","message":f"Application deadline in {(ddl-today).days} day(s)"})
+   except ValueError:pass
+  if row["status"] in ("Applied","Draft ready"):
+   try:
+    last=datetime.fromisoformat(row.get("updated") or "").date()
+    if 10<=(today-last).days<=30:
+     alerts.append({**base,"kind":"followup","message":"Review application status or consider a polite follow-up"})
+   except ValueError:pass
+ return {"alerts":alerts[:100],"count":len(alerts),"checked_at":now(),
+         "note":"In-app reminders shown when you open the dashboard. Push notifications are not implemented."}
+
+@app.get("/api/backup")
+def download_backup():
+ owner()
+ with db.connect() as c:
+  jobs_data=[dict(r._mapping) for r in c.execute(text("SELECT id,company,title,location,url,provider,description,score,warnings,status,notes,deadline,discovered,updated FROM jobs LIMIT 5000"))]
+  contacts_data=[dict(r._mapping) for r in c.execute(text("SELECT id,company,name,email,role,notes FROM contacts LIMIT 5000"))] if has_persistent_db() else []
+ payload={"format":"opportunity-os-backup-v1","created_at":now(),"jobs":jobs_data,"contacts":contacts_data,
+          "note":"Contains application data and HR contacts; keep this file private."}
+ return send_file(io.BytesIO(__import__("json").dumps(payload,ensure_ascii=False).encode("utf-8")),
+                  mimetype="application/json",as_attachment=True,
+                  download_name="opportunity-os-private-backup.json")
+
+@app.post("/api/restore")
+def restore_backup():
+ check_origin()
+ f=request.files.get("file")
+ if not f or not f.filename.lower().endswith(".json"):return {"error":"Upload a JSON backup file"},422
+ blob=f.read(3_000_001)
+ if len(blob)>3_000_000:return {"error":"Backup over 3 MB"},413
+ try:payload=__import__("json").loads(blob)
+ except Exception:return {"error":"Invalid JSON"},422
+ if payload.get("format")!="opportunity-os-backup-v1":return {"error":"Not an Opportunity OS backup"},422
+ items=payload.get("jobs") or []
+ contacts=payload.get("contacts") or []
+ if not isinstance(items,list) or not isinstance(contacts,list) or len(items)>5000 or len(contacts)>5000:
+  return {"error":"Backup contains too many records"},422
+ if contacts and not has_persistent_db():
+  return {"error":"Connect permanent database before restoring private recruiter contacts"},503
+ restored=0
+ statuses={"Discovered","Saved","Draft ready","Applied","Assessment","Interview","Offer","Rejected","Closed"}
+ with db.begin() as c:
+  for j in items:
+   if not isinstance(j,dict) or not secure_url(str(j.get("url",""))):continue
+   link=str(j["url"])[:2000]
+   name=str(j.get("company",""))[:150]
+   role=str(j.get("title",""))[:200]
+   if not name or not role:continue
+   obj={"id":hashlib.sha256(link.encode()).hexdigest()[:32],"company":name,"title":role,
+        "location":str(j.get("location",""))[:200],"url":link,"provider":str(j.get("provider","restored"))[:30],
+        "description":str(j.get("description",""))[:5000],
+        "score":max(0,min(100,int(j.get("score") or 0))),
+        "warnings":str(j.get("warnings",""))[:500],
+        "status":str(j.get("status","Saved")) if str(j.get("status","Saved")) in statuses else "Saved",
+        "notes":str(j.get("notes",""))[:4000],"deadline":str(j.get("deadline",""))[:40],
+        "discovered":str(j.get("discovered") or now())[:60],"updated":now()}
+   c.execute(text("""INSERT INTO jobs(id,company,title,location,url,provider,description,score,warnings,status,notes,deadline,discovered,updated)
+     VALUES(:id,:company,:title,:location,:url,:provider,:description,:score,:warnings,:status,:notes,:deadline,:discovered,:updated)
+     ON CONFLICT(id) DO UPDATE SET status=excluded.status,notes=excluded.notes,deadline=excluded.deadline,updated=excluded.updated"""),obj)
+   restored+=1
+  for person in contacts:
+   if not isinstance(person,dict):continue
+   email=str(person.get("email","")).strip().lower()[:250]
+   if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",email):continue
+   if c.execute(text("SELECT 1 FROM contacts WHERE lower(email)=:email"),{"email":email}).first():continue
+   c.execute(text("INSERT INTO contacts(id,company,name,email,role,notes) VALUES(:id,:company,:name,:email,:role,:notes)"),
+    {"id":secrets.token_hex(16),"company":str(person.get("company",""))[:150],"name":str(person.get("name",""))[:150],
+     "email":email,"role":str(person.get("role",""))[:150],"notes":str(person.get("notes",""))[:4000]})
+ return {"ok":True,"jobs_restored":restored,"contacts_present":len(contacts)}
+
