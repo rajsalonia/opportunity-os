@@ -732,7 +732,7 @@ def gmail_updates():
    elif any(y in s for y in ("interview","schedule a call","technical round")):stage="Possible interview"
    elif any(y in s for y in ("assessment","coding challenge","online test")):stage="Possible assessment"
    else:stage="Needs review"
-   return classify_message({"id":item["id"],"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage},sent_recipients)
+   return classify_message({"id":item["id"],"thread_id":mail.get("threadId",""),"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage},sent_recipients)
   except Exception:return None
  requested=result.get("messages",[])[:40]
  with ThreadPoolExecutor(max_workers=6) as pool:
@@ -759,13 +759,27 @@ def gmail_updates():
  related=sent_recipients+[{"recipient":address.lower()} for mail in outbox
     for _,address in getaddresses([mail.get("to","")])]
  result_items=[classify_message(item,related) for item in result_items]
+ from mail_activity import ingest as record_mail_activity
+ activity=record_mail_activity(db,now(),result_items,outbox)
  from opportunity_radar import ingest_mail_opportunities
  imported_signals=ingest_mail_opportunities(db,now,result_items)
  checked_at=now()
  with db.begin() as c:
   c.execute(text("INSERT INTO settings(key,value) VALUES('gmail_last_checked',:v) ON CONFLICT(key) DO UPDATE SET value=excluded.value"),{"v":checked_at})
- return {"messages":result_items,"outbox":outbox,"imported_signals":imported_signals,"checked_at":checked_at,"failed":len(requested)-len(result_items),
+ return {"messages":result_items,"outbox":outbox,"imported_signals":imported_signals,"mail_activity":activity,"checked_at":checked_at,"failed":len(requested)-len(result_items),
          "note":"Labels are hints, not verified outcomes. No reply was sent."}
+@app.get("/api/gmail/activity")
+def gmail_activity():
+ owner()
+ from mail_activity import snapshot
+ return snapshot(db)
+
+@app.patch("/api/gmail/activity/<mid>/reviewed")
+def gmail_activity_reviewed(mid):
+ check_origin()
+ from mail_activity import mark_reviewed
+ return {"ok":True} if mark_reviewed(db,mid) else ({"error":"Message not found"},404)
+
 @app.post("/api/gmail/send")
 def gmail_send_reviewed():
  check_origin();persistent_only()
