@@ -46,10 +46,11 @@ def ingest(db, timestamp, inbox, outbox):
    thread=str(mail.get("thread_id") or "")[:120]
    on_thread=bool(thread and thread in sent_threads and sender)
    direct=bool(sender and sender in sent_emails)
-   possible_reply=(on_thread or direct) and not bool(re.search(r"no.?reply|donotreply",sender,re.I))
+   earlier=bool(mail.get("possible_reply"))
+   possible_reply=(on_thread or direct or earlier) and not bool(re.search(r"no.?reply|donotreply",sender,re.I))
    if possible_reply:possible_count+=1
    why=("Same Gmail conversation thread as sent outreach" if on_thread else
-        "Sender matches an outgoing recipient" if direct else
+        "Sender matches an outgoing recipient" if direct or earlier else
         "Not matched to an outgoing message")
    category=str(mail.get("stage") or "Needs review")[:90]
    c.execute(text("""INSERT INTO mail_activity
