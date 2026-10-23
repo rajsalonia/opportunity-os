@@ -63,6 +63,38 @@
 <section class="page" id="page-applications" aria-labelledby="title-applications" hidden>
 <div class="page-heading"><div><span class="eyebrow">FROM POSSIBILITY TO PROGRESS</span><h1 id="title-applications" tabindex="-1">My applications<span class="title-dot">.</span></h1><p>Your pipeline, with every next step in view.</p></div><div class="heading-actions"><a class="button" href="/api/export"><span data-icon="download"></span> Export CSV</a><button class="button primary" data-action="add-job"><span data-icon="plus"></span> Add opportunity</button></div></div>
 <div id="application-summary" class="pipeline-summary"></div><div class="panel pipeline-controls"><div class="field-search"><span data-icon="search"></span><input id="application-search" aria-label="Search your applications" placeholder="Find an application…"></div><label><span class="sr-only">Filter tracked stage</span><select id="application-stage"><option value="">All tracked stages</option></select></label><div class="view-toggle" role="group" aria-label="Application view"><button class="icon-button active" id="board-view" aria-label="Board view" aria-pressed="true"><span data-icon="board"></span></button><button class="icon-button" id="list-view" aria-label="List view" aria-pressed="false"><span data-icon="menu"></span></button></div></div><div id="application-board" class="application-board"></div>
+<section class="panel automation-panel" id="autoapply-panel">
+  <div class="panel-heading"><div><span class="eyebrow">AUTOMATION CONTROL CENTER</span><h2>Auto-Apply Queue</h2><p>Safely prepare matching roles, avoid duplicates, and submit only through employer-authorized APIs.</p></div><span id="auto-mode-badge" class="badge">Off by default</span></div>
+  <div class="automation-actions">
+    <button class="button primary" id="auto-prep" type="button">Find eligible opportunities</button>
+    <button class="button" id="auto-run" type="button">Run approved submissions</button>
+    <span id="auto-feedback" class="muted" role="status"></span>
+  </div>
+  <p class="panel-footnote">No mass applications. Greenhouse submission requires a company-issued Job Board API key and verified required fields. Lever, Ashby and unusual forms remain manual review. No CAPTCHA bypass and no claim of a submission without provider acceptance.</p>
+  <div class="two-columns automation-controls">
+    <form id="auto-settings-form" class="stack compact">
+      <h3>Automation rules</h3>
+      <label for="auto-match">Minimum estimated match</label><select id="auto-match"><option value="70">70%</option><option value="75" selected>75%</option><option value="80">80%</option><option value="90">90%</option></select>
+      <label for="auto-daily">Maximum application submissions daily</label><select id="auto-daily"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
+      <label class="automation-check"><input type="checkbox" id="auto-enable"> Enable authorized application submission (off by default)</label>
+      <button class="button" type="submit">Save automation rules</button>
+    </form>
+    <form id="auto-profile-form" class="stack compact">
+      <h3>Verified applicant profile</h3>
+      <p class="muted">Used only for approved applications. Encrypted in PostgreSQL; never committed to GitHub.</p>
+      <label for="auto-first">Legal first name</label><input id="auto-first" autocomplete="given-name" required maxlength="80">
+      <label for="auto-last">Legal last name</label><input id="auto-last" autocomplete="family-name" required maxlength="80">
+      <label for="auto-email">Application email</label><input id="auto-email" type="email" autocomplete="email" required maxlength="160">
+      <label for="auto-phone">Phone number</label><input id="auto-phone" type="tel" autocomplete="tel" required maxlength="24">
+      <p class="muted">Graduation year: 2028. Search scope: India or explicitly India-eligible remote openings.</p>
+      <label class="automation-check"><input id="auto-work-auth" type="checkbox" required> I confirm that I am legally authorized to work in India.</label>
+      <label class="automation-check"><input id="auto-consent" type="checkbox" required> I approve using these exact details and my protected PDF for employer-authorized applications.</label>
+      <button class="button" type="submit">Save approved profile</button>
+    </form>
+  </div>
+  <h3>Application queue</h3><p class="muted" id="auto-overview">Loading private queue…</p><div id="auto-queue" class="automation-queue" aria-live="polite"></div>
+</section>
+
 <section class="panel reminders-panel" id="reminders"><div class="panel-heading"><div><h2>Follow-up reminders</h2><p>For Draft ready and Applied roles updated 10–30 days ago. Checked when you open the workspace.</p></div><button class="button small" id="check-alerts">Check now</button></div><div id="followup-list"></div></section></section>
 <section class="page" id="page-contacts" aria-labelledby="title-contacts" hidden>
 <div class="page-heading"><div><span class="eyebrow">BUILD MEANINGFUL CONNECTIONS</span><h1 id="title-contacts" tabindex="-1">Recruiter CRM<span class="title-dot">.</span></h1><p>The people behind your next opportunity.</p></div><button class="button primary" data-action="add-contact" data-persistent><span data-icon="plus"></span> Add contact</button></div>
