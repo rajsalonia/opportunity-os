@@ -38,7 +38,7 @@ def parse_feed(body,source,category,ts):
  atom=False
  if not items:
   atom=True;items=root.findall(".//{http://www.w3.org/2005/Atom}entry")
- results=[]
+ results=[];seen=set()
  for item in items[:90]:
   def value(*tags):
    for tag in tags:
@@ -63,6 +63,8 @@ def parse_feed(body,source,category,ts):
     if (datetime.now(timezone.utc)-dt).days>45:continue
    except (ValueError,TypeError,OverflowError):pass
   uid=hashlib.sha256(url.split("#")[0].rstrip("/").encode()).hexdigest()[:32]
+  if uid in seen:continue
+  seen.add(uid)
   results.append(dict(id=uid,title=title,summary=summary or "Read original post for details.",
    url=url,source=source,category="Hackathon" if "hackathon" in title.lower() else category,
    location="See organizer / original post",deadline="",published=published[:80],
