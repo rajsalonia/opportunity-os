@@ -1,11 +1,12 @@
-import os, csv, io, hashlib, hmac, re, secrets
+import os, csv, io, hashlib, hmac, re, secrets, tempfile, html
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit
 from concurrent.futures import ThreadPoolExecutor
 import requests
 from flask import Flask, request, jsonify, session, send_file, render_template, abort
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, select, func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError, InterfaceError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app=Flask(__name__)
@@ -19,17 +20,31 @@ app.config["SESSION_COOKIE_SECURE"]=os.getenv("HTTPS_ONLY","true")=="true"
 app.config["SESSION_COOKIE_SAMESITE"]="Lax"
 app.wsgi_app=ProxyFix(app.wsgi_app,x_for=1,x_proto=1,x_host=1)
 pw=os.environ.get("APP_PASSWORD","")
-url=os.environ.get("DATABASE_URL","sqlite:////tmp/opportunity_os.db")
+url=os.environ.get("DATABASE_URL") or "sqlite:///"+os.path.join(tempfile.gettempdir(),"opportunity_os.db").replace("\\","/")
 if url.startswith("postgres://"):url="postgresql+psycopg://"+url[11:]
 if url.startswith("postgresql://"):url="postgresql+psycopg://"+url[13:]
-db=create_engine(url,pool_pre_ping=True,pool_recycle=150)
+engine_options={"pool_pre_ping":True,"pool_recycle":150}
+if url.startswith("postgresql+psycopg://"):
+ # Bounded connections for free PostgreSQL plans; also works with Supabase poolers.
+ engine_options.update(pool_size=3,max_overflow=2,pool_timeout=8,
+                       connect_args={"connect_timeout":4,"prepare_threshold":None})
+db=create_engine(url,**engine_options)
 schema=[
 """CREATE TABLE IF NOT EXISTS jobs(id VARCHAR(64) PRIMARY KEY,company TEXT NOT NULL,title TEXT NOT NULL,location TEXT,url TEXT NOT NULL,provider TEXT,description TEXT,score INTEGER DEFAULT 0,warnings TEXT DEFAULT '',status TEXT DEFAULT 'Discovered',notes TEXT DEFAULT '',deadline TEXT DEFAULT '',discovered TEXT,updated TEXT)""",
 """CREATE TABLE IF NOT EXISTS contacts(id VARCHAR(64) PRIMARY KEY, company TEXT, name TEXT,email TEXT,role TEXT,notes TEXT)""",
 """CREATE TABLE IF NOT EXISTS settings(key VARCHAR(64) PRIMARY KEY,value TEXT)"""
 ]
-with db.begin() as con:
- for stmt in schema: con.execute(text(stmt))
+schema_ready=False
+def initialize_storage():
+ global schema_ready
+ with db.begin() as con:
+  for stmt in schema:con.execute(text(stmt))
+ if "_extra_meta" in globals():_extra_meta.create_all(db)
+ schema_ready=True
+try:initialize_storage()
+except (OperationalError,InterfaceError):
+ # Keep the sign-in screen reachable and retry after configuration is corrected.
+ app.logger.warning("Storage unavailable at startup; check DATABASE_URL privately in Render.")
 boards=[
  ("greenhouse","stripe","Stripe"),("greenhouse","figma","Figma"),
  ("greenhouse","cloudflare","Cloudflare"),("greenhouse","notion","Notion"),
@@ -47,6 +62,11 @@ def secure_url(s):
   p=urlsplit(s)
   return p.scheme=="https" and bool(p.hostname) and not p.username and not p.password
  except Exception:return False
+def plain_description(value):
+ # Employer feeds sometimes entity-encode their HTML. Return text, never markup.
+ decoded=html.unescape(html.unescape(str(value or "")))
+ decoded=re.sub(r"(?i)<br\s*/?>|</(?:p|div|li|h[1-6]|ul|ol)\s*>","\n",decoded)
+ return html.unescape(re.sub(r"<[^>]*>","",decoded))[:5000].strip()
 def rank(title,descr,location):
  title=title.lower(); descr=descr.lower();loc=location.lower()
  score=28 if roles.search(title) else 0
@@ -73,8 +93,37 @@ def headers(response):
  return response
 @app.get("/")
 def homepage():return render_template("index.html")
+@app.get("/favicon.ico")
+def favicon():return app.send_static_file("mark.svg")
 @app.get("/health")
-def health():return {"ok":True,"storage":"postgres" if "postgres" in url else "ephemeral"}
+def health():
+ try:
+  if not schema_ready:initialize_storage()
+  with db.connect() as c:c.execute(text("SELECT 1"))
+  return {"ok":True,"storage":"postgres" if "postgres" in url else "ephemeral","database_connected":True}
+ except (OperationalError,InterfaceError):
+  return {"ok":False,"database_connected":False,"error":"Database unavailable"},503
+
+@app.before_request
+def prepare_storage():
+ if request.path.startswith("/api/") and request.path not in ("/api/session","/api/login","/api/logout"):
+  owner()
+  if not schema_ready:initialize_storage()
+
+@app.errorhandler(OperationalError)
+@app.errorhandler(InterfaceError)
+def storage_error(error):
+ return {"error":"Database connection unavailable. Check DATABASE_URL and Supabase project status privately in Render, then retry."},503
+
+@app.errorhandler(401)
+@app.errorhandler(403)
+@app.errorhandler(404)
+@app.errorhandler(413)
+@app.errorhandler(422)
+@app.errorhandler(503)
+def api_error(error):
+ if request.path.startswith("/api/"):return jsonify(error=error.description),error.code
+ return error
 @app.get("/api/session")
 def whoami():return {"authenticated":bool(session.get("owner")),"storage":"persistent_postgres" if "postgres" in url else "temporary_sqlite","gmail_requires_user_setup":True}
 @app.post("/api/login")
@@ -103,8 +152,9 @@ def jobs():
  search=request.args.get("q","").lower()[:100]; status=request.args.get("status","")[:32]
  if search:data=[x for x in data if search in " ".join([x["title"],x["company"],x["location"] or ""]).lower()]
  if status:data=[x for x in data if x["status"]==status]
+ for item in data:item["description"]=plain_description(item.get("description"))
  data.sort(key=lambda x: x["score"] or 0,reverse=True)
- return {"jobs":data,"count":len(data)}
+ return {"jobs":data,"count":len(data),"limit":2000}
 @app.get("/api/summary")
 def summary():
  owner()
@@ -134,11 +184,15 @@ def updatejob(jid):
  allowed=("Discovered","Saved","Draft ready","Applied","Assessment","Interview","Offer","Rejected","Closed")
  status=str(body.get("status","Saved"))
  if status not in allowed:return {"error":"Invalid status"},422
+ deadline=str(body["deadline"]).strip() if "deadline" in body else None
+ if deadline:
+  try:datetime.strptime(deadline,"%Y-%m-%d")
+  except ValueError:return {"error":"Deadline must be a valid YYYY-MM-DD date"},422
  with db.begin() as c:
   row=c.execute(text("SELECT id FROM jobs WHERE id=:id"),{"id":jid}).first()
   if not row:return {"error":"Not found"},404
-  c.execute(text("UPDATE jobs SET status=:st,notes=COALESCE(:no,notes),updated=:ts WHERE id=:id"),
-    {"st":status,"no":str(body["notes"])[:4000] if "notes" in body else None,"ts":now(),"id":jid})
+  c.execute(text("UPDATE jobs SET status=:st,notes=COALESCE(:no,notes),deadline=COALESCE(:dl,deadline),updated=:ts WHERE id=:id"),
+    {"st":status,"no":str(body["notes"])[:4000] if "notes" in body else None,"dl":deadline,"ts":now(),"id":jid})
  return {"ok":True}
 @app.delete("/api/jobs/<jid>")
 def deletejob(jid):
@@ -159,7 +213,7 @@ def collect(board):
    if not (roles.search(title) and technical.search(title)):continue
    cats=p.get("categories") or {}
    loc=str((p.get("location") or {}).get("name","") if provider=="greenhouse" else cats.get("location",""))
-   desc=re.sub("<[^>]*>"," ",str(p.get("content") or p.get("descriptionPlain") or p.get("description") or ""))[:5000]
+   desc=plain_description(p.get("content") or p.get("descriptionPlain") or p.get("description"))
    link=str(p.get("absolute_url") or p.get("hostedUrl") or p.get("applyUrl") or "")
    if not secure_url(link):continue
    score,warning=rank(title,desc,loc)
@@ -253,7 +307,9 @@ email_table=Table("email_log",_extra_meta,
 source_table=Table("job_sources",_extra_meta,
  Column("id",String(180),primary_key=True),
  Column("provider",String(30)),Column("slug",String(100)),Column("name",String(200)))
-_extra_meta.create_all(db)
+if schema_ready:
+ try:_extra_meta.create_all(db)
+ except (OperationalError,InterfaceError):schema_ready=False
 SETTINGS_SECRET=os.getenv("SESSION_SECRET","")
 FERNET=Fernet(base64.urlsafe_b64encode(hashlib.sha256(SETTINGS_SECRET.encode()).digest())) if SETTINGS_SECRET else None
 GMAIL_SCOPES="https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send"
@@ -305,14 +361,22 @@ def gmail_req(method,path,payload=None):
 def integrations():
  owner()
  with db.connect() as c:
-  row=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+  row=c.execute(select(resume_table.c.name,resume_table.c.hash,resume_table.c.updated,
+    func.length(resume_table.c.content).label("bytes")).where(resume_table.c.id=="original")).mappings().first()
+  last_checked=c.scalar(text("SELECT value FROM settings WHERE key='gmail_last_checked'"))
  return {
+  "database_connected":True,
+  "login_configured":bool(pw),
+  "session_secret_configured":bool(SETTINGS_SECRET),
   "persistent":has_persistent_db(),
   "gmail_available":google_ready(),
   "gmail_connected":bool(get_token()),
   "resume_uploaded":bool(row),
   "resume_filename":row["name"] if row else None,
   "resume_sha256":row["hash"] if row else None,
+  "resume_bytes":row["bytes"] if row else None,
+  "resume_updated":row["updated"] if row else None,
+  "gmail_last_checked":last_checked,
   "email_requires_review":True,
   "auto_ats_apply":False,
   "data_warning":"" if has_persistent_db() else "No persistent DB URL. Avoid importing contacts/resume before configuration."
@@ -321,7 +385,9 @@ def integrations():
 def get_sources():
  owner()
  with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(source_table.select().order_by(source_table.c.name))]
- return {"sources":rows,"default_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in boards]}
+ return {"sources":rows,"default_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in boards],
+         "extended_boards":[{"provider":"ashby","slug":s,"name":n} for s,n in
+                            [("ramp","Ramp"),("linear","Linear"),("perplexity","Perplexity"),("openai","OpenAI")]]}
 @app.post("/api/sources")
 def put_source():
  check_origin();body=request.get_json(silent=True) or {}
@@ -362,7 +428,7 @@ def refresh_extended():
    for post in posts[:800]:
     title=str(post.get("title") or "")
     if not (roles.search(title) and technical.search(title)):continue
-    desc=re.sub("<[^>]*>"," ",str(post.get("descriptionHtml") or post.get("descriptionPlain") or ""))[:5000]
+    desc=plain_description(post.get("descriptionHtml") or post.get("descriptionPlain"))
     loc=str(post.get("location") or "")
     link=str(post.get("jobUrl") or post.get("applyUrl") or "")
     if not secure_url(link):continue
@@ -439,8 +505,14 @@ def upload_original_resume():
  if expected and digest != expected:
   return {"error":"This is not the exact approved original resume PDF. File rejected without modification."},422
  with db.begin() as c:
-  c.execute(resume_table.delete().where(resume_table.c.id=="original"))
-  c.execute(resume_table.insert().values(id="original",name=name,content=data,hash=digest,updated=now()))
+  existing=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+  if existing:
+   if hmac.compare_digest(hashlib.sha256(bytes(existing["content"])).hexdigest(),digest):
+    return {"ok":True,"sha256":digest,"bytes":len(data),"note":"Existing original preserved byte-for-byte."}
+   return {"error":"An original resume is already stored. Replacement is disabled to preserve the original PDF."},409
+  inserted=c.execute(text("INSERT INTO private_documents(id,name,content,hash,updated) VALUES('original',:name,:content,:hash,:updated) ON CONFLICT(id) DO NOTHING"),
+                     {"name":name,"content":data,"hash":digest,"updated":now()})
+  if not inserted.rowcount:return {"error":"An original resume was stored concurrently. Reload the vault; replacement is disabled."},409
  return {"ok":True,"sha256":digest,"bytes":len(data),"note":"Stored byte-for-byte unchanged."}
 
 @app.get("/api/resume/download")
@@ -450,6 +522,17 @@ def get_original_resume():
  if not row:abort(404)
  from flask import send_file as flask_send_file
  return flask_send_file(io.BytesIO(bytes(row["content"])),as_attachment=True,download_name=row["name"],mimetype="application/pdf")
+
+@app.get("/api/resume/verify")
+def verify_original_resume():
+ owner()
+ with db.connect() as c:row=c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
+ if not row:return {"error":"No original resume stored yet"},404
+ data=bytes(row["content"])
+ digest=hashlib.sha256(data).hexdigest()
+ expected=os.getenv("ORIGINAL_RESUME_SHA256","").lower().strip()
+ return {"verified":hmac.compare_digest(digest,row["hash"]) and (not expected or hmac.compare_digest(digest,expected)),
+         "sha256":digest,"bytes":len(data),"filename":row["name"],"checked_at":now()}
 
 @app.get("/api/gmail/connect")
 def gmail_connect():
@@ -497,8 +580,14 @@ def gmail_updates():
    else:stage="Needs review"
    return {"id":item["id"],"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage}
   except Exception:return None
- result_items=[x for x in (scan_item(i) for i in result.get("messages",[])[:40]) if x]
- return {"messages":result_items,"note":"Labels are hints, not verified outcomes. No reply was sent."}
+ requested=result.get("messages",[])[:40]
+ with ThreadPoolExecutor(max_workers=6) as pool:
+  result_items=[x for x in pool.map(scan_item,requested) if x]
+ checked_at=now()
+ with db.begin() as c:
+  c.execute(text("INSERT INTO settings(key,value) VALUES('gmail_last_checked',:v) ON CONFLICT(key) DO UPDATE SET value=excluded.value"),{"v":checked_at})
+ return {"messages":result_items,"checked_at":checked_at,"failed":len(requested)-len(result_items),
+         "note":"Labels are hints, not verified outcomes. No reply was sent."}
 @app.post("/api/gmail/send")
 def gmail_send_reviewed():
  check_origin();persistent_only()
@@ -536,7 +625,7 @@ def gmail_send_reviewed():
 @app.get("/api/gmail/sent")
 def gmail_sent():
  owner()
- with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(email_table.select().order_by(email_table.c.sent_at.desc()).limit(100)).mappings()]
+ with db.connect() as c:rows=[dict(x) for x in c.execute(email_table.select().order_by(email_table.c.sent_at.desc()).limit(100)).mappings()]
  return {"emails":rows}
 
 
@@ -566,7 +655,7 @@ def application_alerts():
     if 10<=(today-last).days<=30:
      alerts.append({**base,"kind":"followup","message":"Review application status or consider a polite follow-up"})
    except ValueError:pass
- return {"alerts":alerts[:100],"count":len(alerts),"checked_at":now(),
+ return {"alerts":alerts[:100],"count":len(alerts),"counts":{kind:sum(a["kind"]==kind for a in alerts) for kind in ("new","deadline","followup")},"checked_at":now(),
          "note":"In-app reminders shown when you open the dashboard. Push notifications are not implemented."}
 
 @app.get("/api/backup")
@@ -590,6 +679,7 @@ def restore_backup():
  if len(blob)>3_000_000:return {"error":"Backup over 3 MB"},413
  try:payload=__import__("json").loads(blob)
  except Exception:return {"error":"Invalid JSON"},422
+ if not isinstance(payload,dict):return {"error":"Not an Opportunity OS backup"},422
  if payload.get("format")!="opportunity-os-backup-v1":return {"error":"Not an Opportunity OS backup"},422
  items=payload.get("jobs") or []
  contacts=payload.get("contacts") or []
@@ -602,6 +692,8 @@ def restore_backup():
  with db.begin() as c:
   for j in items:
    if not isinstance(j,dict) or not secure_url(str(j.get("url",""))):continue
+   try:restored_score=max(0,min(100,int(j.get("score") or 0)))
+   except (ValueError,TypeError):continue
    link=str(j["url"])[:2000]
    name=str(j.get("company",""))[:150]
    role=str(j.get("title",""))[:200]
@@ -609,7 +701,7 @@ def restore_backup():
    obj={"id":hashlib.sha256(link.encode()).hexdigest()[:32],"company":name,"title":role,
         "location":str(j.get("location",""))[:200],"url":link,"provider":str(j.get("provider","restored"))[:30],
         "description":str(j.get("description",""))[:5000],
-        "score":max(0,min(100,int(j.get("score") or 0))),
+        "score":restored_score,
         "warnings":str(j.get("warnings",""))[:500],
         "status":str(j.get("status","Saved")) if str(j.get("status","Saved")) in statuses else "Saved",
         "notes":str(j.get("notes",""))[:4000],"deadline":str(j.get("deadline",""))[:40],

@@ -2,7 +2,7 @@ import os, importlib, tempfile, uuid
 os.environ["APP_PASSWORD"]="test-secret-not-a-real-password"
 os.environ["SESSION_SECRET"]="test-session-secret-for-test-only"
 os.environ["HTTPS_ONLY"]="false"
-os.environ["DATABASE_URL"]="sqlite:////tmp/opportunity-os-test-"+str(uuid.uuid4())+".db"
+os.environ["DATABASE_URL"]="sqlite:///"+os.path.join(tempfile.gettempdir(),"opportunity-os-test-"+str(uuid.uuid4())+".db").replace("\\","/")
 mod=importlib.import_module("app")
 app=mod.app
 app.testing=True
