@@ -347,12 +347,91 @@
     if (!state.sent) return;
     $('#sent-emails').innerHTML = state.sent.length ? state.sent.map(email => `<article class="message-row"><h3>${esc(email.subject)}</h3><small>${esc(email.recipient)} · ${esc(shortTime(email.sent_at))}</small><span class="badge positive">${esc(email.status)}</span></article>`).join('') : empty('No sent messages yet','Emails you explicitly review and send here will be recorded in this history.','send','',true);
   }
-  function renderAll() { renderOverview(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); }
+
+  function renderAutomation() {
+    const data=state.autoapply, node=$('#auto-queue');
+    if (!data) { $('#auto-overview').textContent='Queue is unavailable; check your database connection.'; return; }
+    const r=data.rules || {};
+    $('#auto-match').value=String(r.minimum_match || 75);
+    $('#auto-daily').value=String(r.max_daily || 2);
+    $('#auto-enable').checked=r.enabled === true;
+    $('#auto-mode-badge').textContent=r.enabled ? 'Enabled with safeguards' : 'Automation off';
+    $('#auto-mode-badge').className='badge ' + (r.enabled ? 'positive' : 'warning');
+    $('#auto-run').disabled=!r.enabled || !data.profile_ready || !data.resume_ready;
+    const tasks=data.tasks || [];
+    const submitted=tasks.filter(item=>item.status==='submitted').length;
+    const ready=tasks.filter(item=>item.status==='ready').length;
+    const review=tasks.filter(item=>item.status==='needs_review' || item.status==='unknown').length;
+    $('#auto-overview').textContent=tasks.length+' queued · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
+    node.innerHTML=tasks.length ? tasks.slice(0,40).map(item=>{
+      const link=safeUrl(item.url);
+      const status=esc(String(item.status || '').replaceAll('_',' '));
+      const reason=esc(item.reason || '');
+      const title=esc(item.company)+' — '+esc(item.title);
+      const open=link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer" class="button small">Official application ↗</a>' : '';
+      const approve=item.status==='needs_review' ? '<button class="button small" type="button" data-auto-approve="'+esc(item.job_id)+'">I verified eligibility</button>' : '';
+      const receipt=item.receipt ? '<small>Employer receipt: '+esc(item.receipt)+'</small>' : '';
+      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+'</div><div class="automation-task-actions">'+open+approve+'</div></article>';
+    }).join('') : '<p class="muted">No applications queued yet. Click Find eligible opportunities to classify listings.</p>';
+  }
+  async function reloadAutomation() {
+    state.autoapply=await api('/api/autoapply');
+    renderAutomation();
+  }
+
+  function renderAll() { renderOverview(); renderExplore(); renderApplications(); renderContacts(); renderSources(); renderIntegrations(); renderSent(); renderAutomation(); }
   const requests = [
     ['jobs','/api/jobs',data => data.jobs],['summary','/api/summary',data => data],['alerts','/api/alerts',data => data],
     ['caps','/api/integrations',data => data],['contacts','/api/contacts',data => data.contacts],
-    ['sources','/api/sources',data => data],['sent','/api/gmail/sent',data => data.emails]
+    ['sources','/api/sources',data => data],['sent','/api/gmail/sent',data => data.emails],
+    ['autoapply','/api/autoapply',data => data]
   ];
+
+  $('#auto-prep').addEventListener('click',async event=>{
+    await busy(event.currentTarget,async()=>{
+      try {const v=await post('/api/autoapply/prepare',{limit:150});$('#auto-feedback').textContent='Queued '+v.queued.ready+' eligible and '+v.queued.review+' review-needed opportunities.';await reloadAutomation();}
+      catch(error){toast(error.message,true);}
+    },'Preparing…');
+  });
+  $('#auto-run').addEventListener('click',async event=>{
+    await busy(event.currentTarget,async()=>{
+      try {const v=await post('/api/autoapply/run');$('#auto-feedback').textContent=v.message || ('Submitted '+v.submitted+' applications.');await reloadAutomation();await reloadJobs();}
+      catch(error){toast(error.message,true);}
+    },'Checking eligibility…');
+  });
+  $('#auto-settings-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    await busy(event.submitter,async()=>{
+      try {
+        await post('/api/autoapply/settings',{enabled:$('#auto-enable').checked,
+          minimum_match:Number($('#auto-match').value),max_daily:Number($('#auto-daily').value)});
+        $('#auto-feedback').textContent='Automation rules saved.';await reloadAutomation();
+      } catch(error){toast(error.message,true);}
+    },'Saving…');
+  });
+  $('#auto-profile-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    await busy(event.submitter,async()=>{
+      try {
+        await post('/api/autoapply/settings',{profile:{
+          first_name:$('#auto-first').value.trim(),last_name:$('#auto-last').value.trim(),
+          email:$('#auto-email').value.trim(),phone:$('#auto-phone').value.trim(),
+          graduation_year:'2028',work_authorized_india:$('#auto-work-auth').checked,
+          approved_for_employer_submission:$('#auto-consent').checked}});
+        $('#auto-feedback').textContent='Private applicant profile encrypted and saved.';await reloadAutomation();
+      } catch(error){toast(error.message,true);}
+    },'Encrypting…');
+  });
+  $('#auto-queue').addEventListener('click',async event=>{
+    const button=event.target.closest('[data-auto-approve]');
+    if (!button)return;
+    if (!window.confirm('Confirm you independently verified the company job requirements, India work eligibility, graduation year and custom questions for this specific opening.'))return;
+    await busy(button,async()=>{
+      try {await post('/api/autoapply/approve/'+encodeURIComponent(button.dataset.autoApprove),{eligibility_checked:true});await reloadAutomation();}
+      catch(error){toast(error.message,true);}
+    },'Saving…');
+  });
+
   let loading;
   async function loadData() {
     if (loading) return loading;
