@@ -20,6 +20,7 @@
 <div class="workspace-label"><span class="tiny-avatar">R</span><span class="nav-label">Raj’s workspace<small>Personal career intelligence</small></span><span class="private-icon" data-icon="lock"></span></div><span class="nav-heading">WORKSPACE</span>
 <nav class="nav-links" aria-label="Main navigation">
 <a href="#overview" data-page="overview" title="Overview"><span data-icon="grid"></span><span class="nav-label">Overview</span></a>
+<a href="#radar" data-page="radar" title="Opportunity Radar"><span data-icon="spark"></span><span class="nav-label">Opportunity Radar</span><span class="nav-count" id="nav-radar-count">—</span></a>
 <a href="#explore" data-page="explore" title="Explore opportunities"><span data-icon="compass"></span><span class="nav-label">Explore opportunities</span><span class="nav-count" id="nav-total">—</span></a>
 <a href="#applications" data-page="applications" title="My applications"><span data-icon="board"></span><span class="nav-label">My applications</span></a>
 <a href="#contacts" data-page="contacts" title="Recruiter CRM"><span data-icon="users"></span><span class="nav-label">Recruiter CRM</span></a>
@@ -41,6 +42,7 @@
 <div id="storage-notice" class="notice" hidden><span data-icon="info"></span><div><strong>Your workspace is using temporary storage</strong><p>Records can reset on a Render restart. Connect PostgreSQL to enable private uploads and Gmail.</p></div><a href="#settings">View setup ↗</a></div>
 <section class="page" id="page-overview" aria-labelledby="title-overview">
 <div class="page-heading"><div><span class="eyebrow">YOUR CAREER, IN FOCUS</span><h1 id="title-overview" tabindex="-1">Overview<span class="title-dot">.</span></h1><p>A little clarity for your next big move.</p></div><div class="heading-actions"><span class="date-label" id="today-label"></span><button class="button" data-action="refresh"><span data-icon="refresh"></span><span>Refresh opportunities</span></button></div></div>
+<section class="radar-glance panel"><div class="radar-glance-heading"><div><span class="eyebrow">TODAY'S OPPORTUNITY BRIEF</span><h2>Your discovery pulse</h2><p>Fresh roles and signals from employers, hackathon calendars and community posts.</p></div><a class="button" href="#radar">Open Radar →</a></div><div id="radar-glance-list"><div class="skeleton job-skeleton"></div></div></section>
 <div class="welcome-card"><div class="welcome-copy"><span class="season-tag"><span class="status-dot"></span> SUMMER 2027 · INTERNSHIP SEASON</span><h2>Your next chapter,<br>starts with your next move.</h2><p id="welcome-summary">Welcome back, Raj. Let’s turn your ambitions into opportunities.</p><a class="button primary" href="#explore">Explore opportunities <span data-icon="arrow"></span></a><span class="hero-location"><span data-icon="pin"></span> Delhi NCR <span>→</span> India <span>→</span> Remote</span></div>
 <div class="career-orbit" aria-hidden="true"><div class="orbit-ring outer"></div><div class="orbit-ring middle"></div><div class="orbit-ring inner"></div><div class="orbit-core"><span data-icon="spark"></span><strong>2027</strong><span>MAKE IT YOUR YEAR</span></div><span class="orbit-chip chip-python">&lt;/&gt; Python & backend</span><span class="orbit-chip chip-ai">✧ AI engineering</span><span class="orbit-chip chip-cloud">⌁ Cloud & DevOps</span><span class="orbit-point point-one"></span><span class="orbit-point point-two"></span></div></div>
 <div class="metrics-grid" id="overview-metrics" aria-busy="true">
@@ -55,6 +57,57 @@
 <section class="panel action-panel"><div class="panel-heading"><div><h2>Your next moves</h2><p>Small actions. Real progress.</p></div><span class="mini-tag">ACTION CENTER</span></div><div id="next-actions"></div></section>
 <section class="panel"><div class="panel-heading"><div><h2>Coming up</h2><p>Deadlines in the next 7 days.</p></div><span class="violet" data-icon="clock"></span></div><div id="upcoming-deadlines"></div></section>
 <section class="focus-note"><span class="eyebrow">BUILT AROUND YOU</span><h3>A focused search.<br>A world of possibility.</h3><p>B.Tech Computer Science · Class of 2028</p><div class="tags"><span>Python</span><span>FastAPI</span><span>AI</span><span>AWS</span></div></section></div></div></section>
+
+<section class="page" id="page-radar" aria-labelledby="title-radar" hidden>
+  <div class="page-heading radar-heading">
+    <div><span class="eyebrow">YOUR SIGNAL, NOT THE NOISE</span>
+    <h1 id="title-radar" tabindex="-1">Opportunity Radar<span class="title-dot">.</span></h1>
+    <p>Internships, startup announcements, hackathons, events and useful community posts in one place.</p>
+    </div><div class="heading-actions"><span class="badge" id="radar-freshness">Checking feeds</span>
+    <button class="button primary" id="radar-refresh"><span data-icon="refresh"></span> Check new posts</button></div>
+  </div>
+  <div class="radar-intro"><div><span class="season-tag">LIVE PUBLIC SOURCE WATCH</span>
+  <h2>Find what matters.<br><span>Know what to do next.</span></h2>
+  <p>Short summaries, direct links and explicit eligibility caveats. Sources include Brabble’s public RSS, DEV Community and Hacker News. LinkedIn and restricted platforms are link-only, not scraped.</p>
+  <div class="radar-intro-metrics"><span><strong id="radar-total">—</strong> signals</span>
+  <span><strong id="radar-saved-count">—</strong> saved</span>
+  <span><strong id="radar-feed-count">6</strong> public feeds</span></div></div>
+  <div class="radar-orbit" aria-hidden="true"><span>DISCOVER</span><strong>✦</strong><span>DECIDE</span></div></div>
+  <div class="radar-layout">
+    <div class="radar-main">
+      <div class="panel radar-toolbar"><div class="field-search"><span data-icon="search"></span><input id="radar-search" aria-label="Search opportunity signals" placeholder="Search roles, hackathons, organizers and keywords…"></div>
+        <div class="radar-chip-filters" id="radar-categories" role="group" aria-label="Signal category">
+        <button class="radar-chip active" type="button" data-radar-category="all" aria-pressed="true">All signals</button>
+        <button class="radar-chip" type="button" data-radar-category="Hackathon">Hackathons</button>
+        <button class="radar-chip" type="button" data-radar-category="Startup hiring">Startups</button>
+        <button class="radar-chip" type="button" data-radar-category="Community post">Posts</button>
+        <button class="radar-chip" type="button" data-radar-category="Event">Events</button>
+        <button class="radar-chip" type="button" data-radar-category="saved">Saved</button></div>
+      </div>
+      <div class="radar-list-heading"><strong id="radar-results-count">Latest signals</strong><small id="radar-checked">Checking freshness…</small></div>
+      <div id="radar-list" class="radar-list" aria-live="polite"><div class="skeleton job-skeleton"></div></div>
+    </div>
+    <aside class="radar-sidebar">
+      <section class="panel"><div class="panel-heading"><div><h2>Save a LinkedIn post</h2><p>Or any public event or recruiter post you found.</p></div><span class="violet" data-icon="bookmark"></span></div>
+        <form id="radar-save-form" class="stack compact"><label for="radar-link-title">What is it about?</label>
+        <input id="radar-link-title" placeholder="e.g. Remote backend internship at Acme" required maxlength="190">
+        <label for="radar-link-url">Public post / official link</label><input id="radar-link-url" type="url" placeholder="https://www.linkedin.com/posts/…" required>
+        <label for="radar-link-category">Category</label><select id="radar-link-category">
+        <option value="Internship">Internship</option><option value="Startup hiring">Startup hiring</option>
+        <option value="Hackathon">Hackathon</option><option value="Event">Event</option>
+        <option value="Community post">Community post</option><option value="Fellowship">Fellowship</option>
+        <option value="Scholarship">Scholarship</option><option value="Other">Other</option></select>
+        <label for="radar-link-summary">Short description (optional)</label><textarea id="radar-link-summary" rows="3" maxlength="500" placeholder="Company, eligibility, deadline, how to participate…"></textarea>
+        <button class="button primary" type="submit">Save this opportunity <span data-icon="plus"></span></button>
+        <p class="muted" id="radar-save-feedback" role="status"></p></form>
+      </section>
+      <section class="panel"><div class="panel-heading"><div><h2>Coverage, clearly</h2><p>Six RSS feeds are checked when you open the radar (cached for four hours).</p></div></div>
+       <div id="radar-sources" class="radar-sources"></div>
+       <p class="panel-footnote">Brabble.ai is credited as the event aggregation source. Registration stays with organizers. LinkedIn/Unstop/Naukri do not permit universal public feed access here, so their directory links remain manual unless an authorized integration is available.</p></section>
+    </aside>
+  </div>
+</section>
+
 <section class="page" id="page-explore" aria-labelledby="title-explore" hidden>
 <div class="page-heading"><div><span class="eyebrow">FIND YOUR NEXT MOVE</span><h1 id="title-explore" tabindex="-1">Explore opportunities<span class="title-dot">.</span></h1><p>Official employer listings. A more intentional search.</p></div><div class="heading-actions"><button class="button" data-action="refresh"><span data-icon="refresh"></span> Refresh</button><button class="button primary" data-action="add-job"><span data-icon="plus"></span> Add opportunity</button></div></div>
 <div class="explore-intro"><div><span class="season-tag"><span class="status-dot"></span> YOUR SUMMER 2027 SHORTLIST</span><h2>Good opportunities deserve a closer look.</h2><p>Prioritize your skills and location. Check each employer’s graduation and work authorization requirements.</p></div><span class="intro-compass" data-icon="compass"></span></div>
