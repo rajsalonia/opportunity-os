@@ -72,6 +72,48 @@ GLOBAL_BOARD_CANDIDATES=[
  ("ashby","clerk","Clerk")
 ]
 from global_discovery import FEEDS as PUBLIC_REMOTE_FEEDS, fetch_public_feed, work_details
+
+# Discovery links for India: these sites do not expose an authorized submission API here.
+# Do not report these as automatically scanned or applied.
+INDIA_DISCOVERY_PORTALS=[
+ ("Internshala","https://internshala.com/","Internships","India + remote"),
+ ("Unstop","https://unstop.com/","Internships, fresher hiring, challenges","India"),
+ ("Naukri","https://www.naukri.com/","Fresher and experienced jobs","India"),
+ ("Foundit","https://www.foundit.in/","Jobs and graduate hiring","India"),
+ ("Instahyre","https://www.instahyre.com/","Technology and startup roles","India"),
+ ("Cutshort","https://cutshort.io/","Technology and startup roles","India"),
+ ("Cuvette","https://cuvette.tech/","Internships and fresher tech roles","India"),
+ ("Wellfound","https://wellfound.com/","Startup and remote roles","India + global"),
+ ("LinkedIn Jobs","https://www.linkedin.com/jobs/","Company roles and internships","India + global"),
+ ("Indeed India","https://in.indeed.com/","Broad job listings","India"),
+ ("Hirist","https://www.hirist.tech/","Technology hiring","India"),
+ ("Freshersworld","https://www.freshersworld.com/","Fresher jobs and internships","India"),
+ ("AICTE Internship Portal","https://internship.aicte-india.org/","Student internships","India"),
+ ("National Career Service","https://www.ncs.gov.in/","Government and private jobs","India"),
+ ("Apna","https://apna.co/","Entry-level and local jobs","India"),
+ ("Superset","https://joinsuperset.com/","Campus recruitment","India"),
+ ("TimesJobs","https://www.timesjobs.com/","Job listings","India"),
+ ("Y Combinator Jobs","https://www.ycombinator.com/jobs","Startup roles","Global"),
+ ("We Work Remotely","https://weworkremotely.com/","Remote jobs","Global"),
+ ("Remote OK","https://remoteok.com/","Remote jobs","Global")
+]
+INDIA_EMPLOYER_BOARD_CANDIDATES=[
+ ("greenhouse","razorpay","Razorpay"),("greenhouse","browserstack","BrowserStack"),
+ ("greenhouse","meesho","Meesho"),("greenhouse","groww","Groww"),
+ ("greenhouse","swiggy","Swiggy"),("greenhouse","phonepe","PhonePe"),
+ ("greenhouse","cred","CRED"),("greenhouse","zepto","Zepto"),
+ ("greenhouse","zomato","Zomato"),("greenhouse","freshworks","Freshworks"),
+ ("greenhouse","chargebee","Chargebee"),("greenhouse","inmobi","InMobi"),
+ ("greenhouse","clevertap","CleverTap"),("greenhouse","moengage","MoEngage"),
+ ("greenhouse","sharechat","ShareChat"),("lever","razorpay","Razorpay"),
+ ("lever","browserstack","BrowserStack"),("lever","meesho","Meesho"),
+ ("lever","groww","Groww"),("lever","swiggy","Swiggy"),
+ ("lever","phonepe","PhonePe"),("lever","cred","CRED"),
+ ("lever","freshworks","Freshworks"),("lever","chargebee","Chargebee"),
+ ("lever","inmobi","InMobi"),("lever","clevertap","CleverTap"),
+ ("lever","moengage","MoEngage"),("lever","sharechat","ShareChat")
+]
+
 boards=[
  ("greenhouse","stripe","Stripe"),("greenhouse","figma","Figma"),
  ("greenhouse","cloudflare","Cloudflare"),("greenhouse","notion","Notion"),
@@ -419,7 +461,9 @@ def get_sources():
  with db.connect() as c:rows=[dict(x._mapping) for x in c.execute(source_table.select().order_by(source_table.c.name))]
  return {"sources":rows,"default_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in boards],
          "extended_boards":[{"provider":p,"slug":s,"name":n} for p,s,n in GLOBAL_BOARD_CANDIDATES],
-         "public_feeds":[{"provider":p,"name":n,"url":u} for p,n,u in PUBLIC_REMOTE_FEEDS]}
+         "public_feeds":[{"provider":p,"name":n,"url":u} for p,n,u in PUBLIC_REMOTE_FEEDS],
+         "india_boards":[{"provider":p,"slug":slug,"name":name} for p,slug,name in INDIA_EMPLOYER_BOARD_CANDIDATES],
+         "india_portals":[{"name":name,"url":link,"category":category,"coverage":coverage,"mode":"External discovery / manual application"} for name,link,category,coverage in INDIA_DISCOVERY_PORTALS]}
 @app.post("/api/sources")
 def put_source():
  check_origin();body=request.get_json(silent=True) or {}
@@ -448,7 +492,7 @@ def refresh_extended():
 def refresh_extended_impl():
  with db.connect() as c:
   rows=[(r["provider"],r["slug"],r["name"]) for r in c.execute(source_table.select()).mappings()]
- batch=list({(p,s):(p,s,n) for p,s,n in (boards+rows+GLOBAL_BOARD_CANDIDATES)}.values())[:75]
+ batch=list({(p,s):(p,s,n) for p,s,n in (boards+rows+GLOBAL_BOARD_CANDIDATES+INDIA_EMPLOYER_BOARD_CANDIDATES)}.values())[:110]
  def get_board(entry):
   provider,slug,company=entry
   if provider in ("greenhouse","lever"):return collect(entry)
