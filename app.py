@@ -574,8 +574,14 @@ def discovery_auto_refresh():
   try:
    with db.begin() as c:
     last=c.scalar(text("SELECT value FROM settings WHERE key='discovery_last_attempt'"))
-    if last and datetime.now(timezone.utc)-datetime.fromisoformat(last)<timedelta(hours=_DISCOVERY_HOURS):
-     return {**discovery_state(),"result":"cached"}
+    if last:
+     age=datetime.now(timezone.utc)-datetime.fromisoformat(last)
+     raw=c.scalar(text("SELECT value FROM settings WHERE key='discovery_last_result'"))
+     try:prior=__import__("json").loads(raw or "{}").get("status","unknown")
+     except (ValueError,TypeError):prior="unknown"
+     cooldown=timedelta(minutes=15) if prior=="refreshing" else timedelta(minutes=30) if prior=="failed" else timedelta(hours=_DISCOVERY_HOURS)
+     if age<cooldown:
+      return {**discovery_state(),"result":"cached"}
     c.execute(text("""INSERT INTO settings(key,value) VALUES('discovery_last_attempt',:ts)
       ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"ts":stamp})
     c.execute(text("""INSERT INTO settings(key,value) VALUES('discovery_last_result',:v)
