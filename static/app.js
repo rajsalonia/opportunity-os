@@ -511,50 +511,127 @@
   }
 
 
+
+  // Unified, read-only command center: never infer applications from a listing.
+  let briefMode='all';
+  const briefFilters=[['all','For you'],['jobs','Internships & jobs'],['hackathons','Hackathons'],['startups','Startup leads'],['events','Events & more'],['replies','Replies']];
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('[data-brief-filter]');
+    if(!button)return;
+    const next=button.dataset.briefFilter;
+    if(!briefFilters.some(x=>x[0]===next))return;
+    briefMode=next;renderDailyBrief();
+  });
   function renderDailyBrief() {
     const panel=$('#daily-command-list'),stats=$('#daily-command-stats'),status=$('#discovery-freshness');
+    const controls=$('#daily-brief-controls');
     if(!panel||!stats)return;
     const jobs=(state.jobs||[]).filter(job=>!['Closed','Rejected','Applied','Assessment','Interview','Offer'].includes(job.status));
     const india=/\b(india|delhi|noida|gurugram|gurgaon|bengaluru|bangalore|pune|hyderabad|mumbai|chennai|kolkata|ncr)\b/i;
-    const suitable=jobs.filter(job=>india.test(job.location||'') || (job.work_mode==='Remote' && job.remote_scope==='Worldwide claimed / verify'))
-      .sort((a,b)=>score(b)-score(a));
-    const signals=(state.radar?.items||[]).filter(x=>x.state!=='dismissed'&&
-      ['Internship','Hackathon','Event','Startup hiring','Fellowship','Scholarship'].includes(x.category));
-    const important=(state.mailActivity?.items||[]).filter(m=>
-      m.direction==='received' && !m.reviewed &&
-      /Same Gmail conversation|Sender matches/i.test(m.reply_match||''));
-    const total=(state.jobs||[]).length;
-    stats.innerHTML='<span><strong>'+total+'</strong> employer listings</span>'+
-      '<span><strong>'+suitable.length+'</strong> India/worldwide candidates</span>'+
-      '<span><strong>'+signals.length+'</strong> community signals</span>'+
-      '<span><strong>'+important.length+'</strong> possible replies to review</span>';
+    const matched=jobs.map(job=>{
+      const location=String(job.location||'');
+      const indiaHint=india.test(location);
+      const remote=job.work_mode==='Remote';
+      const worldwide=job.remote_scope==='Worldwide claimed / verify';
+      const priority=score(job)+(indiaHint?18:0)+(worldwide?12:0)+(remote?5:0)+
+        (job.status==='Saved'?7:0)-(job.warnings?6:0);
+      return {job,priority,indiaHint,remote};
+    }).sort((a,b)=>b.priority-a.priority);
+    const radar=(state.radar?.items||[]).filter(x=>x.state!=='dismissed');
+    const sortSignals=(list)=>list.sort((a,b)=>{
+      const deadlineA=Date.parse(a.deadline||''),deadlineB=Date.parse(b.deadline||'');
+      if(Number.isFinite(deadlineA)&&Number.isFinite(deadlineB))return deadlineA-deadlineB;
+      if(Number.isFinite(deadlineA))return -1;
+      if(Number.isFinite(deadlineB))return 1;
+      return Number(b.state==='saved')-Number(a.state==='saved') ||
+        (Date.parse(b.seen_at||'')||0)-(Date.parse(a.seen_at||'')||0);
+    });
+    const hackathons=sortSignals(radar.filter(x=>x.category==='Hackathon'));
+    const startups=sortSignals(radar.filter(x=>x.category==='Startup hiring'));
+    const others=sortSignals(radar.filter(x=>['Event','Community post','Fellowship','Scholarship','Other','Internship'].includes(x.category)));
+    const inbound=(state.mailActivity?.items||[]).filter(x=>x.direction==='received'&&!x.reviewed);
+    const possibleReplies=inbound.filter(x=>/Same Gmail conversation|Sender matches/i.test(x.reply_match||''));
+    const counts={jobs:matched.length,hackathons:hackathons.length,startups:startups.length,events:others.length,replies:possibleReplies.length};
+    stats.innerHTML='<span><strong>'+matched.length+'</strong> jobs to evaluate</span>'+
+      '<span><strong>'+radar.length+'</strong> public & inbox signals</span>'+
+      '<span><strong>'+possibleReplies.length+'</strong> possible replies</span>'+
+      '<span><strong>'+Object.values(counts).reduce((sum,n)=>sum+n,0)+'</strong> items in these sections</span>';
     if(status){
       const d=state.discoveryState||{};
-      const label=d.status==='refreshing'?'Finding new jobs in background…':
-        d.status==='failed'?'Job refresh failed · previous listings retained':
-        d.success_at?'Employer boards checked '+shortTime(d.success_at):
-        'Cached jobs available · checking freshness';
-      status.textContent=label;
+      status.textContent=d.status==='refreshing'?'Checking employer boards…':
+        d.status==='failed'?'Some job sources failed · cached records shown':
+        d.success_at?'Employer boards last checked '+shortTime(d.success_at):
+        'Showing saved records · live checks may be pending';
     }
-    const cards=[];
-    for(const job of suitable.slice(0,4)){
-      const link=safeUrl(job.url),raw=(job.description_preview||job.description||'').trim();
-      const description=raw?raw.slice(0,160):'Open the employer listing to check responsibilities, stipend and application requirements.';
-      const tag=job.work_mode==='Remote'?'Remote · eligibility check':'India-based · check eligibility';
-      cards.push('<article class="daily-brief-card"><div class="daily-brief-top"><span class="daily-brief-kind">ENGINEERING ROLE</span><span class="daily-brief-score">'+score(job)+' / 100 estimated match</span></div>'+
-        '<h3>'+esc(job.title)+'</h3><p class="daily-brief-meta">'+esc(job.company)+' · '+esc(job.location||'Location not provided')+'</p>'+
-        '<p class="daily-brief-description">'+esc(description)+'</p><div class="daily-brief-foot"><span>'+esc(tag)+'</span>'+
-        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Official listing ↗</a>':'')+'</div></article>');
+    if(controls){
+      const labels=briefFilters.map(entry=>{
+        const n=entry[0]==='all'?matched.length+radar.length+possibleReplies.length:counts[entry[0]];
+        return '<button type="button" class="brief-filter'+(briefMode===entry[0]?' active':'')+
+          '" data-brief-filter="'+entry[0]+'" aria-pressed="'+(briefMode===entry[0]?'true':'false')+'">'+
+          esc(entry[1])+' <span>'+n+'</span></button>';
+      }).join('');
+      controls.innerHTML=labels;
     }
-    for(const item of signals.slice(0,4)){
-      const link=safeUrl(item.url),summary=(item.summary||'Read the source to confirm details.').slice(0,170);
-      cards.push('<article class="daily-brief-card"><div class="daily-brief-top"><span class="daily-brief-kind">'+esc(item.category)+'</span><span class="daily-brief-score">'+esc(item.source||'Public feed')+'</span></div>'+
-        '<h3>'+esc(item.title)+'</h3><p class="daily-brief-description">'+esc(summary)+'</p>'+
-        '<div class="daily-brief-foot"><span>Dates and eligibility unverified</span>'+
-        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Read source ↗</a>':'')+'</div></article>');
-    }
-    panel.innerHTML=cards.length?cards.join(''):empty('Your brief is getting ready',
-      'Connect your sources or check for new posts. Saved opportunities remain available even when feeds are offline.','info','',true);
+    const jobCard=record=>{
+      const job=record.job,link=safeUrl(job.url);
+      const desc=String(job.description_preview||job.description||'').trim().slice(0,235)||
+        'Open the employer posting to check responsibilities, stipend, eligibility and application steps.';
+      const mode=job.work_mode||'Work arrangement not specified';
+      const eligibility=job.warnings || (record.indiaHint?
+        'Location mentions India. Verify graduation year and the employer criteria.':
+        record.remote?'Remote does not automatically mean eligible in India.':'Check location and work authorization before applying.');
+      return '<article class="daily-brief-card command-job"><div class="daily-brief-top"><span class="daily-brief-kind">EMPLOYER LISTING</span>'+
+        '<span class="daily-brief-score">'+score(job)+'% estimated match</span></div>'+
+        '<h3>'+esc(job.title)+'</h3><p class="daily-brief-meta">'+esc(job.company)+' · '+esc(job.location||'Location unspecified')+'</p>'+
+        '<p class="daily-brief-description">'+esc(desc)+'</p>'+
+        '<div class="brief-tags"><span>'+esc(mode)+'</span><span>'+esc(job.provider||'Employer')+'</span></div>'+
+        '<p class="brief-caution">'+esc(eligibility)+'</p>'+
+        '<div class="daily-brief-foot"><span>'+esc(job.status==='Saved'?'Already saved':'Verify before applying')+'</span>'+
+        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">View opening ↗</a>':'')+
+        '</div></article>';
+    };
+    const signalCard=item=>{
+      const link=safeUrl(item.url);
+      const short=String(item.summary||'Original listing contains the complete details.').slice(0,235);
+      const loc=item.location && !/^see (organizer|original)/i.test(item.location)?item.location:'';
+      const date=item.deadline?'Deadline: '+item.deadline:'Deadline not confirmed';
+      return '<article class="daily-brief-card command-signal"><div class="daily-brief-top"><span class="daily-brief-kind">'+esc(item.category||'LEAD')+'</span>'+
+        '<span class="daily-brief-score">'+esc(item.source||'Public source')+'</span></div>'+
+        '<h3>'+esc(item.title)+'</h3><p class="daily-brief-description">'+esc(short)+'</p>'+
+        '<div class="brief-tags"><span>'+esc(date)+'</span>'+(loc?'<span>'+esc(loc)+'</span>':'')+'</div>'+
+        '<p class="brief-caution">'+esc(item.verification||'Check original organizer and eligibility.')+'</p>'+
+        '<div class="daily-brief-foot"><span>'+esc(item.state==='saved'?'Saved lead':'Discovery only · not applied')+'</span>'+
+        (link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Read details ↗</a>':'')+
+        '</div></article>';
+    };
+    const replyCard=item=>{
+      const url='https://mail.google.com/mail/u/0/#all/'+encodeURIComponent(item.id);
+      return '<article class="daily-brief-card command-reply"><div class="daily-brief-top"><span class="daily-brief-kind">POSSIBLE RECRUITER REPLY</span>'+
+        '<span class="daily-brief-score">'+esc(item.stage||'Needs review')+'</span></div>'+
+        '<h3>'+esc(item.subject||'(No subject)')+'</h3><p class="daily-brief-meta">'+esc(item.sender||'Unknown sender')+' · '+esc(shortTime(item.date))+'</p>'+
+        '<p class="daily-brief-description">'+esc(String(item.snippet||'').slice(0,235))+'</p>'+
+        '<p class="brief-caution">'+esc(item.reply_match||'Review the conversation before updating the application.')+'</p>'+
+        '<div class="daily-brief-foot"><span>Requires your review</span><a href="'+url+'" target="_blank" rel="noopener noreferrer">Open Gmail ↗</a></div></article>';
+    };
+    const buckets={
+      jobs:matched.slice(0,16).map(jobCard),
+      hackathons:hackathons.slice(0,16).map(signalCard),
+      startups:startups.slice(0,16).map(signalCard),
+      events:others.slice(0,16).map(signalCard),
+      replies:possibleReplies.slice(0,16).map(replyCard)
+    };
+    const cards=briefMode==='all'?
+      [...buckets.replies.slice(0,2),...buckets.jobs.slice(0,4),...buckets.hackathons.slice(0,3),
+        ...buckets.startups.slice(0,2),...buckets.events.slice(0,3)]:
+      buckets[briefMode]||[];
+    panel.innerHTML=cards.length?cards.join(''):empty(
+      briefMode==='replies'?'No possible replies waiting for review':'No matching opportunities in this section',
+      briefMode==='replies'?'Connected Gmail replies appear here after a successful inbox check.':
+        'Use Opportunity Radar for all saved feeds and Explore for the full employer list. Try refreshing the sources.',
+      'info','',true);
+    $('#daily-brief-note').textContent='Showing '+cards.length+' of '+(briefMode==='all'?
+      matched.length+radar.length+possibleReplies.length:counts[briefMode])+
+      ' leads. Listings are not guaranteed open; eligibility, dates and applications require source confirmation.';
   }
 
   function renderMailLedger() {

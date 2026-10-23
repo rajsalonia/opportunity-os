@@ -69,3 +69,9 @@ Gmail's authorized redirect remains `https://opportunity-os-autoapply.onrender.c
 - Free Render web service may sleep when idle, so application refresh occurs only when the user clicks it; daily ChatGPT job alerts are separate.
 - A successful listing fetch does not prove international work authorization or graduation-year eligibility; always verify employer requirements.
 - Sender Gmail remains disconnected until OAuth credentials and authorization are configured.
+
+
+## Unified daily command center (October 2026)
+The dashboard home page now provides category switches for all tracked employer roles (including uncertain remote eligibility), hackathons, startup alerts, events/fellowships/community posts, and possible recruiter replies. It prioritizes real Gmail reply candidates and clearly labels the verification caveat for every item. The "For you" view shows a compact mixed selection, while the category views show up to 16 each; all jobs remain in Explore and all public signals remain in Radar. Filters are view-only and do not imply that any application has been submitted. Inbox data appears only after the website's own Gmail OAuth setup; the Gmail connector inside ChatGPT is a separate authorization.
+
+This public repository deliberately contains **no application email content, contact spreadsheet, tokens, passwords or resume attachment**. Official employer feeds are first-party. Brabble, DEV and other sources are third-party discovery and may be unavailable; the original organizer controls registration and deadlines. LinkedIn / Wellfound / Unstop are not silently scraped, and this project cannot cover every vacancy on the internet. Manual site applications and autofill remain under user review, not falsely recorded as submitted.
