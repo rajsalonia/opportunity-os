@@ -338,10 +338,12 @@
   }
   function renderSources() {
     if (!state.sources) return;
-    const {default_boards:defaults,sources:custom,extended_boards:extended = [],public_feeds:feeds = []} = state.sources;
-    const combined = new Map([...defaults,...extended].map(source => [source.provider + ':' + source.slug,{...source,custom:false}]));
+    const {default_boards:defaults,sources:custom,extended_boards:extended = [],public_feeds:feeds = [],india_boards:indiaBoards = [],india_portals:indiaPortals = []} = state.sources;
+    const combined = new Map([...defaults,...extended,...indiaBoards].map(source => [source.provider + ':' + source.slug,{...source,custom:false}]));
     custom.forEach(source => combined.set(source.provider + ':' + source.slug,{...source,custom:true}));
-    $('#source-summary').textContent = `${combined.size} employer-board candidates + ${feeds.length} global public feeds · ${custom.length} custom · failures shown on refresh`;
+    $('#source-summary').textContent = `${combined.size} employer-board candidates (including India) + ${feeds.length} global public feeds · ${custom.length} custom · failures shown on refresh`;
+    $('#india-source-summary').textContent = `${indiaPortals.length} India/global platform links · ${indiaBoards.length} Indian startup board candidates · portal links require manual application`;
+    $('#india-portal-list').innerHTML = indiaPortals.map(portal => `<a class="india-portal-link" href="${esc(safeUrl(portal.url))}" target="_blank" rel="noopener noreferrer"><strong>${esc(portal.name)} ↗</strong><small>${esc(portal.category)}</small><span class="mini-tag">${esc(portal.coverage)}</span></a>`).join('');
     $('#source-list').innerHTML = Array.from(combined.values()).map(source => {
       const boardUrl = ({greenhouse:'https://boards.greenhouse.io/',lever:'https://jobs.lever.co/',ashby:'https://jobs.ashbyhq.com/'})[source.provider];
       return `<div class="source-row"><div><strong>${esc(source.name)}</strong><small>${esc(source.provider)} / ${esc(source.slug)}</small></div><span class="mini-tag">${source.custom ? 'CUSTOM' : 'INCLUDED'}</span>${boardUrl ? `<a class="icon-button" href="${boardUrl + encodeURIComponent(source.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc(source.name)} board">${icon('external')}</a>` : ''}${source.custom ? `<button class="icon-button" data-action="remove-source" data-id="${esc(source.id)}" aria-label="Remove custom ${esc(source.name)} source">${icon('x')}</button>` : ''}</div>`;
