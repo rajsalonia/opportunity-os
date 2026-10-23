@@ -157,3 +157,41 @@ def test_required_custom_fields_are_never_auto_answered(client_and_db,monkeypatc
     result=client.post("/api/autoapply/run").json
     assert result["submitted"]==0
     assert client.get("/api/autoapply").json["tasks"][0]["status"] in ("needs_review","ready")
+
+
+def test_per_job_approval_resolves_missing_year_without_inventing_answers(client_and_db,monkeypatch):
+    client,db=client_and_db
+    authenticate(client)
+    with db.begin() as c:
+        c.execute(text("UPDATE jobs SET description='Summer internship accepting suitable enrolled students' WHERE id='eligible'"))
+    queued=client.post("/api/autoapply/prepare").json["queued"]
+    assert queued["ready"]==0 and queued["review"]==2
+    assert client.post("/api/autoapply/approve/eligible",json={"eligibility_checked":True}).status_code==200
+    client.post("/api/autoapply/settings",json={"profile":approved_profile()})
+    client.post("/api/autoapply/settings",json={"enabled":True})
+    store_test_pdf(db,monkeypatch)
+    monkeypatch.setenv("GREENHOUSE_BOARD_KEYS_JSON",'{"example":"mock-employer-key"}')
+    class Response:
+        status_code=200
+        def __init__(self,payload):self.payload=payload
+        def json(self):return self.payload
+    monkeypatch.setattr("autoapply_engine.requests.get",lambda *a,**kw:Response({"questions":[]}))
+    monkeypatch.setattr("autoapply_engine.requests.post",lambda *a,**kw:Response({"success":True,"id":"demo123"}))
+    result=client.post("/api/autoapply/run").json
+    assert result["submitted"]==1
+
+
+def test_manual_review_never_overrides_explicit_year_exclusion(client_and_db,monkeypatch):
+    client,db=client_and_db
+    authenticate(client)
+    with db.begin() as c:
+        c.execute(text("UPDATE jobs SET description='Not eligible: graduating in 2028' WHERE id='eligible'"))
+    client.post("/api/autoapply/prepare")
+    assert client.post("/api/autoapply/approve/eligible",json={"eligibility_checked":True}).status_code==200
+    client.post("/api/autoapply/settings",json={"profile":approved_profile()})
+    client.post("/api/autoapply/settings",json={"enabled":True})
+    store_test_pdf(db,monkeypatch)
+    monkeypatch.setenv("GREENHOUSE_BOARD_KEYS_JSON",'{"example":"mock-employer-key"}')
+    monkeypatch.setattr("autoapply_engine.requests.post",lambda *a,**kw:(_ for _ in ()).throw(AssertionError("No submit")))
+    assert client.post("/api/autoapply/run").json["submitted"]==0
+    assert client.get("/api/autoapply").json["tasks"][0]["status"]=="needs_review"
