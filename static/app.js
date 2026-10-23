@@ -479,7 +479,7 @@
     toast('Checking official employer boards. This can take a moment.');
     try {
       const result = await post('/api/refresh/extended');
-      const message = `${result.new} new roles from ${result.checked} boards. ${result.errors.length} boards unavailable.`;
+      const message = `${result.new} new roles from ${result.checked} checked sources. ${result.errors.length} unavailable.${result.feeds_cached ? " Public remote feeds are cached for six hours." : ""}`;
       $('#refresh-report').hidden = false;
       $('#refresh-report').textContent = message + (result.errors.length ? ' ' + result.errors.join('; ') + '. Existing records are retained.' : ' Verify employer requirements for each role.');
       await reloadJobs();
