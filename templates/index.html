@@ -69,6 +69,7 @@
     <button class="button primary" id="auto-prep" type="button">Find eligible opportunities</button>
     <button class="button" id="auto-run" type="button">Run approved submissions</button>
     <a class="button" id="auto-export" href="/api/autoapply/backup">Backup application receipts</a>
+    <a class="button" href="https://github.com/rajsalonia/rajsalonia/tree/opportunity-os-hosted/autofill_companion" target="_blank" rel="noopener noreferrer">Browser autofill companion ↗</a>
     <span id="auto-feedback" class="muted" role="status"></span>
   </div>
   <p class="panel-footnote">No mass applications. Greenhouse submission requires a company-issued Job Board API key and verified required fields. Lever, Ashby and unusual forms remain manual review. No CAPTCHA bypass and no claim of a submission without provider acceptance.</p>
@@ -87,7 +88,25 @@
       <label for="auto-last">Legal last name</label><input id="auto-last" autocomplete="family-name" required maxlength="80">
       <label for="auto-email">Application email</label><input id="auto-email" type="email" autocomplete="email" required maxlength="160">
       <label for="auto-phone">Phone number</label><input id="auto-phone" type="tel" autocomplete="tel" required maxlength="24">
-      <p class="muted">Graduation year: 2028. Search scope: India or explicitly India-eligible remote openings.</p>
+      <h3>Professional links (autofill)</h3>
+      <label for="auto-linkedin">LinkedIn profile</label><input id="auto-linkedin" type="url" autocomplete="url" maxlength="240" placeholder="https://www.linkedin.com/in/...">
+      <label for="auto-github">GitHub profile</label><input id="auto-github" type="url" maxlength="240" placeholder="https://github.com/...">
+      <label for="auto-portfolio">Portfolio website</label><input id="auto-portfolio" type="url" maxlength="240" placeholder="https://...">
+      <h3>Education and academic details</h3>
+      <label for="auto-college">College / institute</label><input id="auto-college" maxlength="240" placeholder="Full institution name">
+      <label for="auto-degree">Degree</label><input id="auto-degree" maxlength="240" placeholder="B.Tech CSE">
+      <div class="two-columns">
+        <div><label for="auto-city">Current city</label><input id="auto-city" maxlength="100" placeholder="New Delhi"></div>
+        <div><label for="auto-country">Country</label><input id="auto-country" maxlength="100" placeholder="India"></div>
+      </div>
+      <div class="two-columns">
+        <div><label for="auto-cgpa">Verified cumulative CGPA (optional)</label><input id="auto-cgpa" inputmode="decimal" maxlength="5" placeholder="Leave blank unless verified"></div>
+        <div><label for="auto-percentage">Verified overall percentage (optional)</label><input id="auto-percentage" inputmode="decimal" maxlength="6" placeholder="Leave blank unless verified"></div>
+      </div>
+      <p class="muted">Your earlier 7.8 was semester SGPA—not verified cumulative CGPA. It is intentionally not entered here. Graduation year: 2028; exact month stays blank unless provided.</p>
+      <label for="auto-graduation-month">Expected graduation month (optional)</label><input id="auto-graduation-month" type="month" min="2028-01" max="2028-12">
+      <p class="muted">Internship: Dexpert Systems · Apr–Jul 2026. Project links: RoofShift AI, CityGraph, BoloAI and ReviewLens. These are bundled automatically in application packs.</p>
+      <p class="muted">Before saving, review every field. Search scope: India and explicitly India-eligible remote opportunities.</p>
       <label class="automation-check"><input id="auto-work-auth" type="checkbox" required> I confirm that I am legally authorized to work in India.</label>
       <label class="automation-check"><input id="auto-consent" type="checkbox" required> I approve using these exact details and my protected PDF for employer-authorized applications.</label>
       <button class="button" type="submit">Save approved profile</button>
