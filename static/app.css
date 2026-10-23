@@ -70,3 +70,73 @@
 .india-portal-link small{opacity:.75;line-height:1.35}
 .india-portal-link .mini-tag{align-self:flex-start;font-size:.69rem}
 @media(max-width:520px){.india-portal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.india-portal-link{padding:.8rem;min-height:125px}}
+
+/* Opportunity OS v2 — calm, readable career intelligence dashboard */
+:root{--bg:#090e17;--sidebar:#0b111d;--surface:#111a29;--surface-raised:#182235;--surface-hover:#1b2940;--border:#27384f;--border-soft:#213047;--text:#edf4ff;--muted:#afbed3;--subtle:#91a3bd;--violet:#afadff;--cyan:#70d5d6;--green:#83e5b3}
+body{background:radial-gradient(ellipse at 90% 0%,#202e5435,transparent 35%),var(--bg)}
+.sidebar{background:linear-gradient(175deg,#101829,#0a1019 72%);border-right:1px solid #29354b}
+.topbar{backdrop-filter:blur(18px);background:rgba(13,20,33,.92)}
+.page-heading h1{letter-spacing:-.065em}
+.panel,.job-card,.metric-card{border-color:var(--border-soft)}
+.button.primary{background:linear-gradient(120deg,#7d8ef4,#7967db);color:#fff}
+.button.primary:hover{filter:brightness(1.12)}
+.radar-heading{margin-bottom:20px}
+.radar-intro{display:flex;justify-content:space-between;align-items:center;gap:36px;min-height:218px;margin-bottom:22px;padding:32px 38px;border:1px solid #44578690;border-radius:22px;background:radial-gradient(circle at 85% 50%,#6457b550,transparent 35%),linear-gradient(115deg,#192847,#101a2f 70%);overflow:hidden;position:relative}
+.radar-intro>div:first-child{z-index:1}
+.radar-intro h2{font:800 clamp(26px,3vw,41px)/1.13 var(--heading);letter-spacing:-.055em;margin:12px 0;color:#fff}
+.radar-intro h2 span{color:#b9bfff}
+.radar-intro p{max-width:610px;color:#c1cee3;line-height:1.65;font-size:13px}
+.radar-intro-metrics{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+.radar-intro-metrics>span{padding:7px 12px;border:1px solid #60749d70;border-radius:100px;background:#f1f5ff09;font-size:12px;color:#c0cee8}
+.radar-intro-metrics strong{color:#fff;font-size:14px}
+.radar-orbit{width:190px;height:190px;flex:0 0 190px;border:1px solid #8591e188;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transform:rotate(-12deg);box-shadow:0 0 0 24px #7c84d217,0 0 0 48px #7c84d210}
+.radar-orbit strong{font-size:65px;line-height:1;color:#9bb0ff}
+.radar-orbit span{color:#a3b7d3;font-size:10px;letter-spacing:.23em}
+.radar-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,285px);gap:18px;align-items:start}
+.radar-main{min-width:0}
+.radar-toolbar{padding:17px;margin-bottom:14px}
+.radar-toolbar .field-search{max-width:100%;width:100%;margin-bottom:12px}
+.radar-chip-filters{display:flex;flex-wrap:wrap;gap:7px}
+.radar-chip{border:1px solid #33445c;background:#111b2b;color:#b6c6dc;padding:8px 12px;border-radius:9px;font-size:12px;font-weight:650}
+.radar-chip.active,.radar-chip:hover{background:#8283f522;color:#e4e7ff;border-color:#9c9df2}
+.radar-list-heading{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:18px 3px 12px}
+.radar-list-heading strong{font-size:14px;color:#e7f0ff}
+.radar-list-heading small{font-size:11px;color:#8fa2ba}
+.radar-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-bottom:14px}
+.radar-card{min-width:0;display:flex;flex-direction:column;gap:12px;border:1px solid #2a3951;background:linear-gradient(145deg,#172235,#111a28);border-radius:16px;padding:18px;transition:border .2s,transform .2s}
+.radar-card:hover{border-color:#596a95;transform:translateY(-2px)}
+.radar-card-line{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.radar-type{background:#7c86e526;color:#cbd0ff;border:1px solid #727cc14d;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:750;letter-spacing:.02em}
+.radar-source{color:#9baec7;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%}
+.radar-score{border-radius:5px;background:#164b3d55;border:1px solid #3e98736b;padding:3px 6px;font-size:10px;color:#95e5be}
+.radar-card h3{font:760 16px/1.35 var(--heading);letter-spacing:-.025em;color:#f4f7fe;margin:0;overflow-wrap:anywhere}
+.radar-card p{font-size:12.5px;color:#b6c5da;line-height:1.65;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.radar-meta{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:auto;color:#8fa6c3;font-size:10.5px}
+.radar-meta span+span{color:#c1ae80}
+.radar-card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.radar-card-actions .button{font-size:11px;padding:7px 10px}
+.radar-dismiss{width:27px;height:27px;opacity:.72}
+.radar-sidebar{display:flex;flex-direction:column;gap:14px}
+.radar-sidebar .panel{padding:18px}
+.radar-sidebar h2{font-size:15px}
+.radar-sidebar input,.radar-sidebar textarea,.radar-sidebar select{width:100%;font-size:12px}
+.radar-source-link{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid #2c3a4d;padding:9px 0;font-size:11px;color:#b3c3db}
+.radar-source-link:hover{color:#fff}
+.radar-source-link svg{width:13px;height:13px;flex:0 0 13px}
+.radar-glance{margin:0 0 20px;padding:17px 20px;background:linear-gradient(120deg,#16243b,#111c2b);border-color:#34496a}
+.radar-glance-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+.radar-glance-heading h2{font:750 20px var(--heading);margin:3px 0;letter-spacing:-.035em}
+.radar-glance-heading p{font-size:12px;color:#aebed5;margin:3px 0}
+#radar-glance-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.radar-glance-item{display:flex;flex-direction:column;gap:5px;position:relative;border:1px solid #394c69;background:#0f1b30bd;border-radius:12px;padding:13px 16px;min-height:120px}
+.radar-glance-item strong{font-size:12px;line-height:1.35;padding-right:10px}
+.radar-glance-item small{color:#9bb0ca;font-size:10px}
+.radar-glance-item>span:last-child{position:absolute;right:12px;top:11px;color:#9daff2}
+.radar-glance-tag{font-size:10px;font-weight:800;color:#96cde7;text-transform:uppercase;letter-spacing:.06em}
+.radar-glance-item:hover{border-color:#8693df}
+#radar-show-more{margin:0 auto 20px;display:block}
+#radar-show-more[hidden]{display:none}
+@media(max-width:1180px){.radar-layout{grid-template-columns:minmax(0,1fr) 245px}.radar-list{grid-template-columns:1fr}}
+@media(max-width:820px){.radar-layout{grid-template-columns:1fr}.radar-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.radar-orbit{display:none}#radar-glance-list{grid-template-columns:1fr}}
+@media(max-width:580px){.radar-intro{padding:24px 22px;min-height:unset}.radar-intro h2{font-size:29px}.radar-sidebar{grid-template-columns:1fr}.radar-list-heading{flex-direction:column;gap:4px}.radar-glance-heading{align-items:flex-start;flex-direction:column}.radar-card{padding:16px}}
+@media(prefers-reduced-motion:reduce){.radar-card:hover{transform:none}}
