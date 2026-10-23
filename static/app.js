@@ -386,9 +386,10 @@
     $('#auto-run').disabled=!r.enabled || !data.profile_ready || !data.resume_ready;
     const tasks=data.tasks || [];
     const submitted=tasks.filter(item=>item.status==='submitted').length;
+    const ownerRecorded=tasks.filter(item=>item.status==='user_reported').length;
     const ready=tasks.filter(item=>item.status==='ready').length;
     const review=tasks.filter(item=>item.status==='needs_review' || item.status==='unknown').length;
-    $('#auto-overview').textContent=tasks.length+' queued · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
+    $('#auto-overview').textContent=tasks.length+' queued · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions · '+ownerRecorded+' owner-recorded. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
     const historyFilter=$('#auto-history-filter').value;
     const visibleTasks=historyFilter==='all' ? tasks : tasks.filter(item=>item.status===historyFilter);
     node.innerHTML=visibleTasks.length ? visibleTasks.slice(0,80).map(item=>{
@@ -399,10 +400,11 @@
       const open=link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer" class="button small">Official application ↗</a>' : '';
       const pack='<a href="/api/autoapply/pack/'+encodeURIComponent(item.job_id)+'?download=1" class="button small" title="Download reusable autofill profile, not a submitted application">Autofill pack ↓</a>';
       const approve=item.status==='needs_review' ? '<button class="button small" type="button" data-auto-approve="'+esc(item.job_id)+'">I verified eligibility</button>' : '';
-      const receipt=item.receipt ? '<small>Employer confirmation: '+esc(item.receipt)+'</small>' : '';
+      const manual=['needs_review','ready'].includes(item.status) ? '<button class="button small" type="button" data-auto-manual="'+esc(item.job_id)+'">Record manual submission</button>' : '';
+      const receipt=item.receipt ? '<small>'+(item.status==='user_reported'?'Owner-provided reference: ':'Employer confirmation: ')+esc(item.receipt)+'</small>' : '';
       const when=item.attempted_at ? '<small>Attempted: '+esc(shortTime(item.attempted_at))+'</small>' : '';
-      const submitted=item.status==='submitted' ? '<span class="badge positive">Confirmed submitted</span>' : '';
-      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+when+submitted+'</div><div class="automation-task-actions">'+open+pack+approve+'</div></article>';
+      const submitted=item.status==='submitted' ? '<span class="badge positive">API-confirmed submission</span>' : (item.status==='user_reported' ? '<span class="badge">Owner-recorded, not API-verified</span>' : '');
+      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+when+submitted+'</div><div class="automation-task-actions">'+open+pack+approve+manual+'</div></article>';
     }).join('') : '<p class="muted">No applications in this view. Choose All applications or refresh eligible opportunities.</p>';
   }
   $('#auto-history-filter').addEventListener('change',renderAutomation);
@@ -462,6 +464,19 @@
     },'Encrypting…');
   });
   $('#auto-queue').addEventListener('click',async event=>{
+    const manual=event.target.closest('[data-auto-manual]');
+    if(manual){
+      const reference=window.prompt('After you submitted on the official employer site, paste the actual confirmation/reference or acknowledgement. Leave empty if you have not submitted.');
+      if(!reference?.trim())return;
+      if(!window.confirm('Confirm: you personally submitted this application on the employer site. This will be recorded as OWNER-REPORTED, not API-verified.'))return;
+      await busy(manual,async()=>{
+        try{
+          await post('/api/autoapply/confirm-manual/'+encodeURIComponent(manual.dataset.autoManual),{reference:reference.trim(),submitted_by_owner:true});
+          await reloadAutomation();await reloadJobs();toast('Submission recorded as owner-reported, not API-verified.');
+        }catch(error){toast(error.message,true);}
+      },'Recording…');
+      return;
+    }
     const button=event.target.closest('[data-auto-approve]');
     if (!button)return;
     if (!window.confirm('Confirm you independently verified the company job requirements, India work eligibility, graduation year and custom questions for this specific opening.'))return;
