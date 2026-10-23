@@ -15,7 +15,10 @@ FEEDS=[
  ("Hacker News • YC jobs","https://hnrss.org/jobs","Startup hiring"),
  ("Hacker News • Hiring threads","https://hnrss.org/whoishiring/jobs?q=intern","Startup hiring"),
  ("Himalayas • Remote jobs","https://himalayas.app/jobs/rss","Internship"),
- ("InternScan • Global internships","https://internscan.vercel.app/feed.xml","Internship")]
+ ("InternScan • Global internships","https://internscan.vercel.app/feed.xml","Internship"),
+ ("DEV • Hiring announcements","https://dev.to/feed/tag/hiring","Community post"),
+ ("DEV • Fellowships","https://dev.to/feed/tag/fellowship","Community post"),
+ ("DEV • Developer challenges","https://dev.to/feed/tag/devchallenge","Community post")]
 CATEGORIES=("Hackathon","Event","Community post","Startup hiring","Internship","Fellowship","Scholarship","Other")
 STATES=("new","saved","dismissed")
 TAG=re.compile(r"<[^>]*>")
@@ -41,7 +44,7 @@ def parse_feed(body,source,category,ts):
  if not items:
   atom=True;items=root.findall(".//{http://www.w3.org/2005/Atom}entry")
  results=[];seen=set()
- for item in items[:90]:
+ for item in items[:250]:
   def value(*tags):
    for tag in tags:
     x=item.find(tag)
@@ -94,6 +97,9 @@ def refresh(db,clock):
  except (ValueError,TypeError):pass
  ts=clock()
  with ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(lambda f:fetch(f,ts),FEEDS))
+ # Optional, authorized structured listing feed. The public RSS remains available.
+ from brabble_intelligence import fetch_brabble
+ api_items,api_error=fetch_brabble(ts)
  new=0
  with db.begin() as c:
   for items,error in results:
@@ -103,22 +109,40 @@ def refresh(db,clock):
       VALUES(:id,:title,:summary,:url,:source,:category,:location,:deadline,:published,:seen_at,
       :state,:verification) ON CONFLICT(id) DO NOTHING"""),item)
     new+=max(0,r.rowcount)
+  for item in api_items:
+   r=c.execute(text("""INSERT INTO radar_items(id,title,summary,url,source,category,location,
+       deadline,published,seen_at,state,verification)
+       VALUES(:id,:title,:summary,:url,:source,:category,:location,:deadline,:published,:seen_at,
+         :state,:verification)
+       ON CONFLICT(id) DO UPDATE SET
+         deadline=CASE WHEN excluded.deadline!='' THEN excluded.deadline ELSE radar_items.deadline END,
+         summary=excluded.summary,location=excluded.location,verification=excluded.verification
+       """),item)
+   new+=max(0,r.rowcount) if r.rowcount and r.rowcount>0 else 0
+  c.execute(text("""INSERT INTO settings(key,value) VALUES('brabble_api_error',:error)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
+    {"error":api_error or ""})
   c.execute(text("""INSERT INTO settings(key,value) VALUES('radar_checked_at',:ts)
      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"ts":ts})
   c.execute(text("""INSERT INTO settings(key,value) VALUES('radar_source_errors',:err)
      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
      {"err":"|".join(FEEDS[i][0] for i,(items,error) in enumerate(results) if error)})
  return {"skipped":False,"checked_at":ts,"new":new,
-         "failed_sources":[FEEDS[i][0] for i,(items,error) in enumerate(results) if error]}
+         "failed_sources":[FEEDS[i][0] for i,(items,error) in enumerate(results) if error]+
+         (["Brabble API"] if api_error else [])}
 def snapshot(db):
  ensure(db)
  with db.connect() as c:
   rows=[dict(r) for r in c.execute(text("""SELECT * FROM radar_items WHERE state!='dismissed'
-       ORDER BY CASE WHEN state='saved' THEN 0 ELSE 1 END, seen_at DESC LIMIT 1200""")).mappings()]
+       ORDER BY CASE WHEN state='saved' THEN 0 ELSE 1 END, seen_at DESC LIMIT 3000""")).mappings()]
   checked=c.scalar(text("SELECT value FROM settings WHERE key='radar_checked_at'"))
   last_errors=c.scalar(text("SELECT value FROM settings WHERE key='radar_source_errors'"))
- return {"items":rows,"checked_at":checked,"count":len(rows),"failed_sources":(last_errors or "").split("|") if last_errors else [],"refresh_hours":4,
-     "sources":[{"name":x[0],"url":x[1]} for x in FEEDS],
+  api_error=c.scalar(text("SELECT value FROM settings WHERE key='brabble_api_error'"))
+ return {"items":rows,"checked_at":checked,"count":len(rows),"failed_sources":((last_errors or "").split("|") if last_errors else [])+
+         (["Brabble API"] if api_error else []),"refresh_hours":4,
+     "sources":[{"name":x[0],"url":x[1]} for x in FEEDS]+
+       ([{"name":"Brabble • college-student API","url":"https://brabble.ai/developers"}]
+         if __import__("os").environ.get("BRABBLE_API_KEY") else []),
      "attribution":"Brabble.ai (public RSS). Original organizer controls registration."}
 def save(db,clock,data):
  ensure(db)
