@@ -320,3 +320,19 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             refresh_employers()
         make_queue(150)
         return run_queue(limit=2)
+
+    @app.get("/api/autoapply/backup")
+    def auto_backup():
+        owner();ensure()
+        from flask import send_file
+        from io import BytesIO
+        with db.connect() as c:
+            rows=[dict(x) for x in c.execute(text("""SELECT job_id,fingerprint,status,reason,receipt,
+                 reviewed_at,attempted_at,updated_at FROM application_tasks
+                 ORDER BY updated_at DESC LIMIT 5000""")).mappings()]
+        payload={"format":"opportunity-os-application-receipts-v1","exported_at":now(),
+                 "tasks":rows,"note":"Private application audit log. Protect this file; it excludes applicant profile, PDF and OAuth secrets."}
+        blob=json.dumps(payload,ensure_ascii=False).encode("utf-8")
+        return send_file(BytesIO(blob),mimetype="application/json",as_attachment=True,
+                         download_name="opportunity-os-application-receipts.json")
+
