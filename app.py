@@ -491,7 +491,7 @@ def import_hr_contacts():
    c.execute(text("INSERT INTO contacts(id,company,name,email,role,notes) VALUES(:id,:company,:name,:email,:role,:notes)"),
     {"id":secrets.token_hex(16),"company":company,"email":email,
      "name":lower.get("name",lower.get("hr name",""))[:150],
-     "role":lower.get("role","")[:150],"notes":lower.get("linkedin","")[:500]})
+     "role":lower.get("role","")[:150],"notes":(lower.get("notes") or lower.get("linkedin") or "")[:500]})
    inserted+=1
  return {"imported":inserted,"skipped":skipped,"total_rows":min(len(rows),6000)}
 
