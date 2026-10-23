@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opportunity OS Autofill</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{font:14px/1.5 system-ui,Arial,sans-serif;background:#101625;color:#ebeff9;width:350px;margin:0;padding:18px}h1{font-size:18px;margin:0 0 8px}h2{font-size:14px;margin:12px 0 6px}p{color:#b3c0d5;margin:6px 0 12px}label{display:block;font-size:12px;color:#c6d1e3;margin:12px 0 5px}input[type=file]{display:block;width:100%;font:inherit;font-size:12px;padding:8px;border:1px dashed #65738e;border-radius:8px}button{width:100%;padding:11px 8px;cursor:pointer;background:#8c6df5;color:#fff;border:0;border-radius:8px;font:600 13px system-ui;margin-top:8px}button.secondary{background:#2b344b}button:disabled{opacity:.55;cursor:not-allowed}#status{white-space:pre-wrap;background:#1b263c;border-radius:8px;padding:10px;min-height:40px;margin-top:10px}small{display:block;color:#aab7cd;margin-top:8px}a{color:#b9b0ff}strong{color:#fff}.warning{border-left:3px solid #efb86a;padding-left:10px;margin:12px 0}</style></head><body>
+<h1>Opportunity OS <span aria-hidden="true">✦</span></h1>
+<p>One-click form preparation for supported fields, using your approved details.</p>
+<label for="pack">1. Import the JSON autofill pack downloaded from Opportunity OS</label><input id="pack" type="file" accept=".json,application/json">
+<small id="loaded">No application pack saved.</small>
+<label for="resume">2. Select your original PDF resume (optional, only used on this click)</label><input id="resume" type="file" accept=".pdf,application/pdf">
+<button id="open" class="secondary" type="button">Open official job listing ↗</button>
+<button id="fill" type="button">Fill current application form</button>
+<button id="clear" class="secondary" type="button">Delete locally saved profile</button>
+<div id="status" role="status">Ready. Import your pack to begin.</div>
+<p class="warning">Review everything. This companion never clicks Submit, answers legal/declaration questions, bypasses CAPTCHA or claims an application was sent.</p>
+<small>Profile JSON stays in Chrome extension storage on this browser. Resume PDF is never saved by the extension. Works on normal web form fields; protected iframes may need manual entry.</small>
+<script src="popup.js"></script></body></html>
