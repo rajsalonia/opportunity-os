@@ -98,6 +98,9 @@ def refresh(db,clock):
     new+=max(0,r.rowcount)
   c.execute(text("""INSERT INTO settings(key,value) VALUES('radar_checked_at',:ts)
      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"ts":ts})
+  c.execute(text("""INSERT INTO settings(key,value) VALUES('radar_source_errors',:err)
+     ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
+     {"err":"|".join(FEEDS[i][0] for i,(items,error) in enumerate(results) if error)})
  return {"skipped":False,"checked_at":ts,"new":new,
          "failed_sources":[FEEDS[i][0] for i,(items,error) in enumerate(results) if error]}
 def snapshot(db):
@@ -106,7 +109,8 @@ def snapshot(db):
   rows=[dict(r) for r in c.execute(text("""SELECT * FROM radar_items WHERE state!='dismissed'
        ORDER BY CASE WHEN state='saved' THEN 0 ELSE 1 END, seen_at DESC LIMIT 1200""")).mappings()]
   checked=c.scalar(text("SELECT value FROM settings WHERE key='radar_checked_at'"))
- return {"items":rows,"checked_at":checked,"count":len(rows),"refresh_hours":4,
+  last_errors=c.scalar(text("SELECT value FROM settings WHERE key='radar_source_errors'"))
+ return {"items":rows,"checked_at":checked,"count":len(rows),"failed_sources":(last_errors or "").split("|") if last_errors else [],"refresh_hours":4,
      "sources":[{"name":x[0],"url":x[1]} for x in FEEDS],
      "attribution":"Brabble.ai (public RSS). Original organizer controls registration."}
 def save(db,clock,data):
