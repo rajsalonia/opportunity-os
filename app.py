@@ -541,6 +541,68 @@ def refresh_extended_impl():
     score=excluded.score,warnings=excluded.warnings,updated=excluded.updated"""),r|{"ts":now()})
  return {"new":added,"checked":len(batch)+len(feed_futures),"feeds":[p for p,_,_ in PUBLIC_REMOTE_FEEDS],"feeds_cached":feed_recent,"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
 
+
+# Opening the workspace shows cached opportunities immediately; this endpoint
+# queues a bounded background refresh only when the last attempt is old.
+from threading import Thread, Lock
+_discovery_lock=Lock()
+_DISCOVERY_HOURS=8
+
+def discovery_state():
+ with db.connect() as c:
+  rows=c.execute(text("""SELECT key,value FROM settings WHERE key IN
+    ('discovery_last_attempt','discovery_last_success','discovery_last_result')""")).all()
+ data={k:v for k,v in rows}
+ status="not_checked"
+ raw=data.get("discovery_last_result","")
+ if raw:
+  try: status=__import__("json").loads(raw).get("status","unknown")
+  except (TypeError,ValueError):status="unknown"
+ return {"status":status,"attempted_at":data.get("discovery_last_attempt"),
+         "success_at":data.get("discovery_last_success"),"refresh_hours":_DISCOVERY_HOURS}
+
+@app.get("/api/discovery/state")
+def discovery_state_get():
+ owner()
+ return discovery_state()
+
+@app.post("/api/discovery/auto-refresh")
+def discovery_auto_refresh():
+ check_origin()
+ with _discovery_lock:
+  stamp=now()
+  try:
+   with db.begin() as c:
+    last=c.scalar(text("SELECT value FROM settings WHERE key='discovery_last_attempt'"))
+    if last and datetime.now(timezone.utc)-datetime.fromisoformat(last)<timedelta(hours=_DISCOVERY_HOURS):
+     return {**discovery_state(),"result":"cached"}
+    c.execute(text("""INSERT INTO settings(key,value) VALUES('discovery_last_attempt',:ts)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"ts":stamp})
+    c.execute(text("""INSERT INTO settings(key,value) VALUES('discovery_last_result',:v)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
+       {"v":'{"status":"refreshing"}'})
+  except (ValueError,TypeError):
+   return {"error":"Discovery state cannot be read."},503
+
+  def worker():
+   try:
+    result=refresh_extended_impl()
+    summary={"status":"ready","new":result["new"],"checked":result["checked"],
+             "errors":len(result["errors"]),"feeds_cached":result["feeds_cached"]}
+    with db.begin() as c:
+     for k,v in (("discovery_last_success",now()),
+                ("discovery_last_result",__import__("json").dumps(summary))):
+      c.execute(text("""INSERT INTO settings(key,value) VALUES(:k,:v)
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"k":k,"v":v})
+   except Exception:
+    app.logger.exception("Background job discovery failed")
+    with db.begin() as c:
+     c.execute(text("""INSERT INTO settings(key,value) VALUES('discovery_last_result',:v)
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
+       {"v":'{"status":"failed"}'})
+  Thread(target=worker,name="opportunity-discovery",daemon=True).start()
+ return {"result":"started","status":"refreshing","attempted_at":stamp,"refresh_hours":_DISCOVERY_HOURS},202
+
 @app.post("/api/contacts/import")
 def import_hr_contacts():
  check_origin();persistent_only()
