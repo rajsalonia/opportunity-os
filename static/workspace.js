@@ -24,8 +24,61 @@ function tag(label,cls=''){return `<span class="tag ${cls}">${esc(label)}</span>
 function eligibilityTag(item){const code=item.eligibility.code;return tag(({eligible:'Eligible · verify before applying',likely:'Likely eligible',unknown:'Eligibility needs review',ineligible:'Eligibility conflict',closed:'Closed or expired'})[code],code==='eligible'||code==='likely'?'success':code==='ineligible'||code==='closed'?'danger':'warning');}
 function remember(items){items.forEach(x=>state.items.set(x.key,x));return items;}
 function card(item){
+  // Put the decision in the card; keep long requirements inside Details.
   const f=item.extracted,fields=f.fields,key=esc(item.key),deadline=f.deadline;
-  return `<article class="card opportunity-card" data-key="${key}"><div class="card-top"><div class="company-avatar" aria-hidden="true">${esc((item.company==='Organizer not disclosed'?'O':item.company||'O').slice(0,1))}</div><div><div class="company-line">${esc(item.company)} ${tag(item.category)}</div><button class="card-title" data-action="detail" data-key="${key}">${esc(item.title)}</button></div><button class="icon-button save-button ${item.saved?'selected':''}" data-action="save" data-key="${key}" aria-label="${item.saved?'Unsave':'Save'} ${esc(item.title)}" aria-pressed="${item.saved}">${icon('bookmark')}</button></div><div class="card-meta"><span>${icon('map-pin')}${esc(item.location||'Location not disclosed')}</span><span>${icon('globe')}${esc(f.work_mode)}</span><span>${icon('banknote')}${esc(fields.compensation.value||'Compensation not disclosed')}</span><span>${icon('clock')}${esc(fields.duration.value||'Duration not disclosed')}</span></div><div class="tags">${eligibilityTag(item)}${fields.graduation_years.value?tag('Graduation: '+fields.graduation_years.value.join(', ')):''}${deadline.date?tag('Deadline '+fmt(deadline.utc||deadline.date),'accent'):tag('Deadline not stated')}${item.stage!=='Discovered'?tag(item.stage):''}${item.pinned?tag('Pinned','accent'):''}</div><p class="why-line">${icon(item.eligibility.code==='ineligible'?'circle-alert':'check')}<span><strong>${item.eligibility.code==='ineligible'?'Check before proceeding:':'Why review this:'}</strong> ${esc(item.recommendation.reasons[0]||item.eligibility.reasons[0])}</span></p><div class="card-footer"><span class="source-label">${esc(item.provider||item.source||'Owner-added')}<br>${item.published?'Published '+fmt(item.published,{year:'numeric'}):'First discovered '+fmt(item.first_seen)}${deadline.date&&!deadline.cutoff_known?' · Cutoff unknown':''}</span><label class="checkbox-inline"><input type="checkbox" data-compare="${key}" ${state.selected.has(item.key)?'checked':''}>Compare</label>${button('View opportunity '+icon('arrow-up-right'),'detail',`data-key="${key}"`,'soft')}</div></article>`;
+  const company=String(item.company||'Organizer not disclosed');
+  const pay=fields.compensation.value||'Pay not disclosed';
+  const mode=f.work_mode||'Work mode unknown';
+  const reason=(item.eligibility.code==='ineligible'?item.eligibility.reasons[0]:item.recommendation.reasons[0])
+    ||'Read the employer requirements before applying.';
+  const checklist=item.checklist||{done:0,total:0};
+  const prepLabel=checklist.total
+    ?'Checklist '+(checklist.done||0)+'/'+checklist.total
+    :'Start checklist';
+  const rawSummary=String(item.summary||'').replace(/\\s+/g,' ').trim();
+  const summary=rawSummary.length>240?rawSummary.slice(0,237).replace(/\\s+\\S*$/,'')+'…':rawSummary;
+  const sourceTitle=String(item.provider||item.source||'Owner-added source');
+  const timeLabel=item.published
+    ?'Published '+fmt(item.published,{year:'numeric'})
+    :'Discovered '+fmt(item.first_seen,{year:'numeric'});
+  return `<article class="card opportunity-card" data-key="${key}">
+    <div class="card-top">
+      <div class="company-avatar" aria-hidden="true">${esc(company.slice(0,1))}</div>
+      <div class="card-identity">
+        <div class="company-line">${esc(company)} ${tag(item.category)}</div>
+        <button class="card-title" data-action="detail" data-key="${key}">${esc(item.title)}</button>
+      </div>
+      <button class="icon-button save-button ${item.saved?'selected':''}" data-action="save"
+        data-key="${key}" aria-label="${item.saved?'Unsave':'Save'} ${esc(item.title)}"
+        aria-pressed="${Boolean(item.saved)}">${icon('bookmark')}</button>
+    </div>
+    <div class="card-meta">
+      <span>${icon('map-pin')}${esc(item.location||'Location unknown')}</span>
+      <span>${icon('globe')}${esc(mode)}</span>
+      <span>${icon('banknote')}${esc(pay)}</span>
+    </div>
+    <div class="tags">
+      ${eligibilityTag(item)}
+      ${deadline.date?tag('Employer deadline: '+fmt(deadline.utc||deadline.date),'accent'):tag('Deadline not stated')}
+      ${item.stage!=='Discovered'?tag(item.stage):''}
+      ${item.pinned?tag('Pinned','accent'):''}
+    </div>
+    ${summary?`<p class="card-summary">${esc(summary)}</p>`:''}
+    <p class="why-line">${icon(item.eligibility.code==='ineligible'?'circle-alert':'circle-question-mark')}
+      <span><strong>${item.eligibility.code==='ineligible'?'Eligibility warning:':'Why consider it:'}</strong> ${esc(reason)}</span>
+    </p>
+    <div class="card-footer">
+      <span class="source-label">${esc(sourceTitle)} · ${timeLabel}
+      ${deadline.date&&!deadline.cutoff_known?' · Deadline time unknown':''}</span>
+      <label class="checkbox-inline"><input type="checkbox" data-compare="${key}"
+        ${state.selected.has(item.key)?'checked':''}>Compare</label>
+    </div>
+    <div class="card-action-bar">
+      ${button('Details '+icon('arrow-right'),'detail',`data-key="${key}"`,'soft')}
+      ${button(icon('list-checks')+esc(prepLabel),'checklist',`data-key="${key}"`)}
+      ${link('Open source '+icon('external-link'),item.url,'button primary')}
+    </div>
+  </article>`;
 }
 function mini(item){return `<button class="mini-row" data-action="detail" data-key="${esc(item.key)}"><span class="company-avatar">${esc((item.company||'O')[0])}</span><span class="row-copy"><strong>${esc(item.title)}</strong><small>${esc(item.company)} · ${fmt(item.first_seen)}</small></span>${icon('arrow-up-right')}</button>`;}
 function deadlineRow(event){return `<button class="deadline-row" data-action="${event.opportunity_key?'detail':'event-info'}" data-key="${esc(event.opportunity_key||'')}" data-event="${esc(event.title)}"><span class="date-tile">${esc((event.deadline.local_date||event.deadline.date).slice(8))}<small>${esc(fmt(event.deadline.local_date||event.deadline.date,{month:'short',day:undefined}).toUpperCase())}</small></span><span><strong>${esc(event.title)}</strong><p>${esc(event.kind)} · ${event.deadline.cutoff_known?fmt(event.deadline.utc,{hour:'numeric',minute:'2-digit'}):'Exact cutoff unknown'}</p></span></button>`;}
@@ -147,6 +200,7 @@ document.addEventListener('click',async event=>{
     else if(action==='logout'){await mutate('/api/logout');location.href='/';}
     else if(action==='refresh'){const r=await mutate('refresh');toast(r.status);}
     else if(action==='detail')await showDetail(key);
+    else if(action==='checklist')await showDetail(key,'checklist');
     else if(action==='save'||action==='detail-save'){const x=state.items.get(key);await updateOpportunity(key,{saved:!x.saved});toast(x.saved?'Removed from Saved':'Saved to your shortlist');await refreshUnderlying();}
     else if(action==='pin'){const x=state.items.get(key);await updateOpportunity(key,{pinned:!x.pinned});await refreshUnderlying();}
     else if(action==='archive'||action==='dismiss'){const x=state.items.get(key);await updateOpportunity(key,{[action==='archive'?'archived':'dismissed']:!(action==='archive'?x.archived:x.dismissed)});toast('Your workspace was updated. This action is reversible.');await refreshUnderlying();}

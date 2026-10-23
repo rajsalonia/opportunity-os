@@ -2070,3 +2070,97 @@ dialog::backdrop {
     margin-left:auto
   }
 }
+
+/* Opportunity cards: decision-first information and accessible reading sizes.
+   These rules override the older compact card density without changing themes. */
+.opportunity-card {
+  padding:22px;
+}
+.card-identity {
+  min-width:0;
+  flex:1;
+}
+.opportunity-card .company-line {
+  font-size:13px;
+}
+.opportunity-card .card-title {
+  font-size:16px;
+  line-height:1.45;
+}
+.opportunity-card .card-meta {
+  margin:14px 0;
+  gap:9px 18px;
+  font-size:13px;
+  line-height:1.55;
+}
+.opportunity-card .tag {
+  font-size:12px;
+  padding:5px 8px;
+}
+.card-summary {
+  margin:14px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.65;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  overflow:hidden;
+}
+.opportunity-card .why-line {
+  font-size:13px;
+  line-height:1.6;
+  margin:14px 0 0;
+}
+.opportunity-card .card-footer {
+  margin-top:16px;
+  padding-top:13px;
+  flex-wrap:wrap;
+}
+.opportunity-card .source-label {
+  font-size:12px;
+  line-height:1.5;
+  min-width:130px;
+}
+.card-action-bar {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin-top:13px;
+}
+.card-action-bar .button {
+  font-size:12px;
+  min-height:39px;
+  padding:9px 11px;
+}
+.card-action-bar .button.primary {
+  margin-left:auto;
+}
+.detail-section p,.detail-section li,.detail-fact strong,.detail-description,
+.evidence-quote,.checklist-item {
+  font-size:14px;
+  line-height:1.7;
+}
+.detail-section h3,.checklist-group h3 {
+  font-size:15px;
+}
+.checklist-item {
+  padding:13px 0;
+}
+.detail-description {
+  line-height:1.75;
+}
+@media (max-width:700px) {
+  .opportunity-card {padding:17px}
+  .opportunity-card .card-meta,.opportunity-card .why-line,
+  .opportunity-card .card-summary {font-size:13px}
+  .card-action-bar {display:grid;grid-template-columns:1fr 1fr}
+  .card-action-bar .button {justify-content:center}
+  .card-action-bar .button.primary {
+    grid-column:1/-1;
+    margin:0;
+  }
+  .detail-section p,.detail-section li,.detail-fact strong,
+  .detail-description,.checklist-item {font-size:14px}
+}
