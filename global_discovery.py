@@ -37,6 +37,8 @@ def work_details(location, description="", remote_flag=None):
         scope="Not established"
     elif NO_INDIA.search(text) or REGION_RESTRICTION.search(loc):
         scope="Region-restricted / verify"
+    elif re.fullmatch(r"(?:remote\s*[·,|/ -]*\s*)?(?:usa|united states|canada|united kingdom|uk|europe|emea|north america|australia)",loc,re.I):
+        scope="Region-restricted / verify"
     elif INDIA_TERMS.search(loc) or re.search(r"\bremote\s*[-–,(/ ]\s*india\b",desc,re.I):
         scope="India mentioned / verify"
     elif GLOBAL_TERMS.search(loc):
@@ -70,8 +72,8 @@ def normalize(provider, company, title, location, description, link, rank, remot
     description=description_text(description)
     if not accept_role(title,description,location):return None
     meta=work_details(location,description,remote_flag)
-    if meta["work_mode"]=="Remote" and meta["remote_scope"]=="Location eligibility unverified":
-        location=(str(location or "").strip()+" · Remote (region unverified)").strip(" ·")
+    if meta["work_mode"]=="Remote" and not REMOTE_TERMS.search(str(location or "")):
+        location="Remote · "+str(location or "Region unspecified").strip()
     score,warnings=rank(title,description,location)
     if meta["work_mode"]=="Remote":score=min(100,score+12)
     if meta["remote_scope"]=="Region-restricted / verify":
