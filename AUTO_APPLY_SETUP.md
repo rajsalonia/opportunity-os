@@ -93,3 +93,20 @@ For companies that do not provide an authorized API, use the optional **Chrome A
 After submitting manually, use **Record manual submission** with the employer acknowledgement/reference. It is recorded as **owner-reported, not employer-API-verified**, and is displayed separately from real provider-verified submissions. Never claim a downloaded pack or filled form is submitted.
 
 This is an honest staged path to more coverage, not guaranteed universal auto-apply.
+
+## Opportunity Radar v2: one-screen discovery
+
+The private Opportunity Radar merges employer internships, startup listings, official hiring boards and additional public RSS announcements. The Overview page now has a quick three-item brief; Radar has short summaries, categories, search, source links, pagination, bookmarks, and eligibility caveats.
+
+Actively polled public feeds (cached for four hours; checked after opening the dashboard or on manual refresh):
+- Brabble.ai hackathon RSS and Brabble.ai Delhi NCR RSS, credited as event aggregator; registration happens on the organizer website.
+- DEV Community #hackathon and #internship RSS: community posts, not confirmed open positions.
+- Hacker News YC jobs and a filtered Who Is Hiring RSS: startup leads, not verified India work eligibility.
+
+RSS feeds only publish what their sources expose. LinkedIn, Naukri, Unstop, Internshala, Devfolio, recruiter posts and other restricted sites cannot be exhaustively scraped or applied to through this app. The Career Sources directory links directly to those platforms. Users can save any public LinkedIn/event/recruiter post URL to Radar, with a short description and clear UNVERIFIED label.
+
+On a connected dashboard Gmail OAuth account, Check replies also reads Gmail Sent metadata (not message bodies) and relevant inbox snippets for source-matched possible replies. Only exact sender matches to known outbound recipients count as possible replies; hiring-related subjects may create unverified inbox leads in the private Radar. Interview invitations, application acknowledgements, assessments and rejections are not newly advertised jobs. The application never auto-sends follow-ups or treats a possible reply as an accepted job application. ChatGPT's separate Gmail connectors cannot be silently linked to the app.
+
+Application actions are unchanged: email sent is not employer acceptance; downloading an application pack is not submitting a form. Employer-authorized ATS integrations, approved applicant data, confirmed work/graduate eligibility, and private resume are required for automatic submission. Chrome autofill is user-triggered and does not click Submit.
+
+Security: private Google OAuth tokens, applicant contact data and original resume do not belong in the public GitHub repository. Render free PostgreSQL needs renewal/migration before its expiration. CI validates the browser JavaScript and all Python tests before release.
