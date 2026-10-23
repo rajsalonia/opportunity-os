@@ -311,6 +311,9 @@
     $('#gmail-connect').hidden = !caps.gmail_available || caps.gmail_connected;
     $('#gmail-check').disabled = !caps.gmail_connected;
     $('#gmail-last-checked').textContent = 'Last checked: ' + shortTime(caps.gmail_last_checked);
+    $('#gmail-account-label').textContent=caps.gmail_account?
+      'Connected Gmail account: '+caps.gmail_account:
+      'Account identity not yet verified. Use Check replies when Gmail is connected.';
     $('#attach-resume').disabled = !caps.resume_uploaded;
     if (!caps.resume_uploaded) $('#attach-resume').checked = false;
     updateSendGate();
@@ -605,7 +608,7 @@
         '</div></article>';
     };
     const replyCard=item=>{
-      const url='https://mail.google.com/mail/u/0/#all/'+encodeURIComponent(item.id);
+      const url=connectedGmailLink(item.id);
       return '<article class="daily-brief-card command-reply"><div class="daily-brief-top"><span class="daily-brief-kind">POSSIBLE RECRUITER REPLY</span>'+
         '<span class="daily-brief-score">'+esc(item.stage||'Needs review')+'</span></div>'+
         '<h3>'+esc(item.subject||'(No subject)')+'</h3><p class="daily-brief-meta">'+esc(item.sender||'Unknown sender')+' · '+esc(shortTime(item.date))+'</p>'+
@@ -634,6 +637,12 @@
       ' leads. Listings are not guaranteed open; eligibility, dates and applications require source confirmation.';
   }
 
+  function connectedGmailLink(id){
+    const addr=state.caps?.gmail_account;
+    return 'https://mail.google.com/mail/'+
+      (addr?'?authuser='+encodeURIComponent(addr):'/u/0/')+
+      '#all/'+encodeURIComponent(id);
+  }
   function renderMailLedger() {
     const node=$('#mail-ledger-list'),tag=$('#mail-ledger-count');
     if(!node)return;
@@ -641,11 +650,13 @@
     const count=(state.mailActivity?.counts?.received||0);
     const replies=items.filter(x=>x.direction==='received'&&
       /Same Gmail conversation|Sender matches/i.test(x.reply_match||''));
-    if(tag)tag.textContent=count+' received · '+replies.length+' possible replies';
+    const receipts=items.filter(x=>x.direction==='received'&&x.stage==='Application received').length;
+    const bounces=items.filter(x=>x.direction==='received'&&x.stage==='Delivery failure').length;
+    if(tag)tag.textContent=count+' received · '+replies.length+' possible replies · '+receipts+' receipts · '+bounces+' bounces';
     const shown=items.filter(x=>x.direction==='received').slice(0,16);
     node.innerHTML=shown.length?shown.map(x=>{
       const matched=/Same Gmail conversation|Sender matches/i.test(x.reply_match||'');
-      const url='https://mail.google.com/mail/u/0/#all/'+encodeURIComponent(x.id);
+      const url=connectedGmailLink(x.id);
       return '<article class="mail-ledger-item"><div class="daily-brief-top"><span class="daily-brief-kind">'+
         esc(matched?'POSSIBLE RECRUITER REPLY':'INBOX SIGNAL')+'</span><span class="daily-brief-score">'+esc(x.stage||'Needs review')+'</span></div>'+
         '<h3>'+esc(x.subject||'(No subject)')+'</h3><p>'+esc(x.sender||'Sender unavailable')+' · '+esc(shortTime(x.date))+'</p>'+

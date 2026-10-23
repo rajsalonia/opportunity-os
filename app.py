@@ -438,6 +438,7 @@ def integrations():
   row=c.execute(select(resume_table.c.name,resume_table.c.hash,resume_table.c.updated,
     func.length(resume_table.c.content).label("bytes")).where(resume_table.c.id=="original")).mappings().first()
   last_checked=c.scalar(text("SELECT value FROM settings WHERE key='gmail_last_checked'"))
+  gmail_account=c.scalar(text("SELECT value FROM settings WHERE key='gmail_connected_email'"))
  return {
   "database_connected":True,
   "login_configured":bool(pw),
@@ -451,6 +452,7 @@ def integrations():
   "resume_bytes":row["bytes"] if row else None,
   "resume_updated":row["updated"] if row else None,
   "gmail_last_checked":last_checked,
+  "gmail_account":gmail_account if gmail_account and re.fullmatch(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+",gmail_account) else None,
   "email_requires_review":True,
   "auto_ats_apply":False,
   "data_warning":"" if has_persistent_db() else "No persistent DB URL. Avoid importing contacts/resume before configuration."
@@ -725,8 +727,29 @@ def gmail_updates():
  from inbox_intelligence import classify_message
  with db.connect() as c:
   sent_recipients=[{"recipient":x[0]} for x in c.execute(text("SELECT recipient FROM email_log WHERE status='sent' LIMIT 500"))]
- result=gmail_req("GET","messages?q="+__import__("urllib.parse",fromlist=["quote"]).quote(
-  'in:inbox newer_than:30d -category:promotions -category:social')+"&maxResults=50")
+ from urllib.parse import quote
+ queries=(
+  'in:inbox newer_than:90d (application OR assessment OR interview OR shortlisted OR rejection OR offer OR internship) -category:promotions -category:social',
+  'in:inbox newer_than:45d (hiring OR hackathon OR fellowship OR scholarship OR recruiter OR developer OR event) -category:promotions -category:social')
+ messages_by_id={}
+ search_failures=0
+ for query in queries:
+  try:
+   page=gmail_req("GET","messages?q="+quote(query,safe="")+"&maxResults=65")
+   for m in page.get("messages",[]):
+    if m.get("id"):messages_by_id.setdefault(m["id"],m)
+  except Exception:search_failures+=1
+ if search_failures==len(queries):
+  abort(503,description="Gmail temporarily unavailable; previous records retained.")
+ requested=list(messages_by_id.values())[:100]
+ try:
+  identity=gmail_req("GET","profile")
+  address=str(identity.get("emailAddress") or "").strip().lower()
+  if re.fullmatch(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+",address):
+   with db.begin() as c:
+    c.execute(text("""INSERT INTO settings(key,value) VALUES('gmail_connected_email',:value)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"value":address})
+ except Exception:pass
  def scan_item(item):
   try:
    mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date")
@@ -740,7 +763,6 @@ def gmail_updates():
    else:stage="Needs review"
    return classify_message({"id":item["id"],"thread_id":mail.get("threadId",""),"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage},sent_recipients)
   except Exception:return None
- requested=result.get("messages",[])[:50]
  with ThreadPoolExecutor(max_workers=6) as pool:
   result_items=[x for x in pool.map(scan_item,requested) if x]
  # Read the authorized account's own outgoing mail to expose sent history
@@ -749,7 +771,7 @@ def gmail_updates():
  try:
   from urllib.parse import quote
   sent_list=gmail_req("GET","messages?q="+quote(
-   'in:sent newer_than:60d (application OR internship OR intern OR engineer OR developer)',safe="")+"&maxResults=45")
+   'in:sent newer_than:90d (application OR internship OR intern OR engineer OR developer OR recruiter OR job)',safe="")+"&maxResults=65")
   def outbound(item):
    try:
     mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Date")
@@ -759,7 +781,7 @@ def gmail_updates():
        "gmail_thread_id":mail.get("threadId","")}
    except Exception:return None
   with ThreadPoolExecutor(max_workers=5) as pool:
-   outbox=[x for x in pool.map(outbound,sent_list.get("messages",[])[:45]) if x]
+   outbox=[x for x in pool.map(outbound,sent_list.get("messages",[])[:65]) if x]
  except Exception:outbox=[]
  from email.utils import getaddresses
  related=sent_recipients+[{"recipient":address.lower()} for mail in outbox
@@ -778,7 +800,7 @@ def gmail_updates():
  checked_at=now()
  with db.begin() as c:
   c.execute(text("INSERT INTO settings(key,value) VALUES('gmail_last_checked',:v) ON CONFLICT(key) DO UPDATE SET value=excluded.value"),{"v":checked_at})
- return {"messages":result_items,"outbox":outbox,"imported_signals":imported_signals,"mail_activity":activity,"checked_at":checked_at,"failed":len(requested)-len(result_items),
+ return {"messages":result_items,"outbox":outbox,"imported_signals":imported_signals,"mail_activity":activity,"checked_at":checked_at,"failed":len(requested)-len(result_items)+search_failures,
          "note":"Labels are hints, not verified outcomes. No reply was sent."}
 @app.get("/api/gmail/activity")
 def gmail_activity():
