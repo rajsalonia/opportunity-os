@@ -411,6 +411,9 @@ def remove_source(source_id):
 @app.post("/api/refresh/extended")
 def refresh_extended():
  check_origin()
+ return refresh_extended_impl()
+
+def refresh_extended_impl():
  with db.connect() as c:
   rows=[(r["provider"],r["slug"],r["name"]) for r in c.execute(source_table.select()).mappings()]
  additional=[("ashby","ramp","Ramp"),("ashby","linear","Linear"),
@@ -724,4 +727,4 @@ def restore_backup():
 # Separate private automation feature. It shares the existing session and
 # persistent database, and is disabled until the owner explicitly enables it.
 from autoapply_engine import register as register_autoapply
-register_autoapply(app, db, owner, check_origin, now, has_persistent_db, resume_table)
+register_autoapply(app, db, owner, check_origin, now, has_persistent_db, resume_table, refresh_employers=refresh_extended_impl)
