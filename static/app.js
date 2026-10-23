@@ -631,6 +631,11 @@
         const ts=Date.parse(state.radar.checked_at||'');
         if(!Number.isFinite(ts)||Date.now()-ts>4*3600*1000)refreshRadar(true);
       }
+      if(state.caps?.gmail_connected){
+        const last=Date.parse(state.caps.gmail_last_checked||'');
+        if(!Number.isFinite(last)||Date.now()-last>6*3600*1000)
+          $('#gmail-check').click();
+      }
       // Replace loading placeholders with errors rather than implying zero records.
       if (!state.jobs && failures.length) {
         $('#jobs-list').innerHTML = empty('Your opportunities couldn’t load','Check the error above and retry.','info');
@@ -780,6 +785,10 @@
       try {
         const result = await api('/api/gmail/updates'); state.messages = result.messages;
         state.gmailOutbox=result.outbox||[];renderSent();
+        if(result.imported_signals){
+          try{state.radar=await api('/api/radar');renderRadar();}
+          catch(error){toast('Inbox was checked, but the Radar could not reload.',true);}
+        }
         state.caps.gmail_last_checked = result.checked_at;
         $('#gmail-last-checked').textContent = 'Last checked: ' + shortTime(result.checked_at);
         $('#gmail-messages').innerHTML = result.messages.length ? result.messages.map(message => `<article class="message-row"><h3>${esc(message.subject || '(No subject)')}</h3><small>${esc(message.from)} · ${esc(shortTime(message.date))}</small><span class="badge violet">${esc(message.stage)}</span>${message.possible_reply?'<span class="badge positive">Possible reply to outreach</span>':''}<p>${esc(message.snippet)}</p><small>${esc(message.reply_evidence||'Verify message context.')}</small><a class="text-link" href="https://mail.google.com/mail/u/0/#all/${encodeURIComponent(message.id)}" target="_blank" rel="noopener noreferrer">Review in Gmail ↗</a></article>`).join('') : empty('No recent matching replies','No relevant messages were returned from the past 21 days. No email was sent.','mail','',true);
