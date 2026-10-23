@@ -13,7 +13,9 @@ FEEDS=[
  ("DEV • Hackathons","https://dev.to/feed/tag/hackathon","Community post"),
  ("DEV • Internships","https://dev.to/feed/tag/internship","Community post"),
  ("Hacker News • YC jobs","https://hnrss.org/jobs","Startup hiring"),
- ("Hacker News • Hiring threads","https://hnrss.org/whoishiring/jobs?q=intern","Startup hiring")]
+ ("Hacker News • Hiring threads","https://hnrss.org/whoishiring/jobs?q=intern","Startup hiring"),
+ ("Himalayas • Remote jobs","https://himalayas.app/jobs/rss","Internship"),
+ ("InternScan • Global internships","https://internscan.vercel.app/feed.xml","Internship")]
 CATEGORIES=("Hackathon","Event","Community post","Startup hiring","Internship","Fellowship","Scholarship","Other")
 STATES=("new","saved","dismissed")
 TAG=re.compile(r"<[^>]*>")
@@ -56,6 +58,11 @@ def parse_feed(body,source,category,ts):
    url=value("link");published=value("pubDate")
   if not title or not safe_link(url):continue
   if source.startswith("DEV") and not CTA.search(title):continue
+  if source.startswith("Himalayas"):
+   if not re.search(r"\b(intern|internship|junior|graduate|trainee|apprentice|entry.level)\b",title,re.I):continue
+   if not re.search(r"\b(software|backend|developer|engineering|python|data|ai|machine learning|cloud|devops|security|platform|frontend|full.stack)\b",title,re.I):continue
+   if re.search(r"\b(senior|staff|principal|lead|manager|director)\b",title,re.I):continue
+  if source.startswith("InternScan") and re.search(r"\b(PhD|doctorate|postdoctoral)\b",title,re.I):continue
   if published:
    try:
     dt=parsedate_to_datetime(published)
