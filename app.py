@@ -814,3 +814,16 @@ def restore_backup():
 # persistent database, and is disabled until the owner explicitly enables it.
 from autoapply_engine import register as register_autoapply
 register_autoapply(app, db, owner, check_origin, now, has_persistent_db, resume_table, refresh_employers=refresh_extended_impl)
+
+# Populate a small set of researched employer openings and create application
+# packs on the active persistent store. Never submit these applications.
+from curated_openings import seed_curated_jobs
+if has_persistent_db():
+ try:
+  seeded=seed_curated_jobs(db,now,rank)
+  app.logger.warning("Opportunity OS: curated applicant forms prepared; new jobs=%s, queued=%s",
+                     seeded["jobs_added"],seeded["tasks_prepared"])
+ except Exception as exc:
+  # One failed source should not prevent the dashboard from starting.
+  app.logger.error("Curated job preparation deferred: %s",type(exc).__name__)
+
