@@ -67,6 +67,14 @@ def test_deadline_zone_and_date_only_ics():
     assert 'DTSTART;VALUE=DATE:20270115' in text and '23:59' not in text
     assert 'Exact cutoff unknown' in text and 'TRIGGER:-PT1440M' in text
 
+def test_holiday_and_learning_benefits_are_not_contract_duration_or_pay():
+    f=extract({'title':'Graduate Software Engineer','description':'Base pay varies by location. Annual compensation review. Personal learning and development budget of USD 2,000 per year. Four annual sprints and 4 weeks annual holiday leave.','url':'https://example.org'})
+    assert f['fields']['duration']['value'] is None
+    assert f['fields']['compensation']['value'] is None
+    f=extract({'title':'Software Intern','description':'Internship duration: 12 weeks. Salary $50 per hour.','url':'https://example.org'})
+    assert '12 weeks' in f['fields']['duration']['value']
+    assert f['fields']['currency']['value'] is None
+
 def test_conservative_dedupe_tracking_parameters_and_separate_roles(service):
     a=add(service,'one');b=add(service,'two')
     assert len(service.snapshot())==2

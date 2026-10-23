@@ -98,13 +98,13 @@ def extract(item):
     salary_is_pay=bool(salary and re.search(r'(?i)stipend|salary|compensation|base pay|pay range|paid internship',salary_context) and not re.search(r'(?i)learning.{0,40}(?:budget|fund)|development.{0,40}(?:budget|fund)|travel grant|prize|registration fee',salary_context))
     if salary_is_pay:
         fields['compensation'] = fact(salary.group().strip(),description[max(0,salary.start()-60):salary.end()+60])
-        currency = next((currency for pattern,currency in [(r'₹|INR','INR'),(r'USD|\$','USD'),(r'EUR|€','EUR'),(r'GBP|£','GBP')] if re.search(pattern,salary.group())),None)
+        currency = next((currency for pattern,currency in [(r'₹|INR','INR'),(r'USD','USD'),(r'EUR|€','EUR'),(r'GBP|£','GBP')] if re.search(pattern,salary.group())),None)
         fields['currency'] = fact(currency,salary.group())
         period = re.search(r'(?i)month|monthly|annum|year|annually|hour|week|LPA',salary.group())
         if period: fields['payment_period'] = fact(period.group().lower(),salary.group())
     elif re.search(r'\bunpaid\b',description,re.I): fields['compensation'] = fact('Unpaid','Unpaid stated in source')
     elif re.search(r'\bpaid (?:internship|position|role)\b',description,re.I): fields['compensation'] = fact('Paid; amount not disclosed','Paid role stated in source')
-    duration = re.search(r'(?i)\b(?:duration\s*[:=-]?\s*|(?:internship|intern)\s+(?:of|for)\s+)?(\d+(?:\s*[-–]\s*\d+)?)\s*[- ]?(months?|weeks?)(?:\s+(?:internship|term|program|full.time))?',description)
+    duration = re.search(r'(?i)\b(?:duration|internship(?:\s+(?:duration|length))?|program (?:duration|length)|commitment|placement)\s*(?:(?:is|of|for)\s+|[:=-]\s*)?(?:a\s+)?\d+(?:\s*[-–]\s*\d+)?\s*[- ]?(?:months?|weeks?)\b|\b\d+(?:\s*[-–]\s*\d+)?\s*[- ]?(?:months?|weeks?)\s*(?:long\s+)?(?:internship|placement|program|term)\b',text)
     if duration: fields['duration'] = fact(duration.group().strip(),duration.group())
     requirement_sentences = [s.strip() for s in re.split(r'[\n.!?;]+',text) if re.search(r'graduat|class of|batch|cohort|passing out|pass.out',s,re.I)]
     graduation = []
