@@ -50,3 +50,25 @@ For a free external scheduler, cron-job.org offers custom POST methods and heade
 - tests/test_autoapply.py — tests approvals, dedup, no-key fallback, mock employer receipts, unsupported-field stops.
 - static/app.js / templates/index.html / static/app.css — private responsive Auto-Apply controls.
 - Branch: opportunity-os-hosted. GitHub main unchanged.
+
+
+## Global remote-first discovery (October 2026 expansion)
+
+The **Explore Opportunities** screen now sorts by remote-first relevance by default. Filter for:
+- All remote
+- Worldwide remote (employer/feed claim, not a guarantee of India work eligibility)
+- India-mentioned remote
+- Hybrid
+- On-site
+
+Each opportunity shows the provider, a longer description preview, and a full job description of up to 12,000 characters when the source supplies it. The detail view explicitly labels work mode and any inferred geographic restrictions.
+
+**Public feeds**: Jobicy, Remotive and Arbeitnow. The publisher name and original listing URL are preserved. Jobicy and Remotive have attribution and polling restrictions; use the existing daily scheduled refresh, not continuous polling. Arbeitnow includes European listings and is not assumed to be India-eligible. These feeds provide **discovery**, not permission to submit applications.
+
+**Company boards**: Existing Greenhouse/Lever/Ashby boards plus 45 additional candidate employer boards, including remote-first companies and startups. Slugs are tested live during refresh; some may have changed, be inactive, or provide no relevant openings. A configured board does not guarantee a live opening.
+
+**Important**: No finite integration covers every employer or startup worldwide. Workday, LinkedIn, Indeed, company-specific forms, and other sites need separately authorized adapters or manual review. Remote jobs restricted to another country must not be treated as globally eligible.
+
+**Submission history**: In **My Applications → Auto-Apply Queue**, choose **Confirmed submitted** to view only employer-acknowledged submissions with their receipt and timestamp. **Needs review** shows forms or eligibility requiring manual work. The downloadable private receipts backup is independent of Gmail email history.
+
+**Automation activation**: Once the applicant profile and rules have been explicitly approved, routine eligible submissions through a genuine employer-authorized connector can run without repeated prompts. Missing authorization, custom employer questions, uncertain network outcomes, and ambiguous work eligibility must remain in review. The user does not need to approve every routine *supported* application, but the platform cannot override employer requirements or access controls.
