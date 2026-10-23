@@ -82,6 +82,40 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
                 and p.get("graduation_year")=="2028" and p.get("work_authorized_india") is True
                 and p.get("approved_for_employer_submission") is True)
 
+    def import_user_confirmed_profile_from_private_env():
+        """One-time, verified owner contact import; never put private data in GitHub.
+
+        Render env vars are temporary transport. Persist encrypted in PostgreSQL.
+        Never turn on background submissions or alter an existing opt-out here.
+        """
+        if not cipher or not has_persistent_db():
+            return False
+        if os.getenv("OPPORTUNITY_OS_PROFILE_IMPORT_APPROVED") != "yes":
+            return False
+        phone=os.getenv("OPPORTUNITY_OS_PROFILE_PHONE","").strip()
+        email=os.getenv("OPPORTUNITY_OS_PROFILE_EMAIL","").strip().lower()
+        if not re.fullmatch(r"\\+91[6-9]\\d{9}",phone) or not _VALID_EMAIL.fullmatch(email):
+            return False
+        existing=profile()
+        if existing:
+            # Preserve explicit employer-submission approval and all saved metadata.
+            if existing.get("phone")==phone:
+                return True
+            existing["phone"]=phone
+            candidate=existing
+        else:
+            candidate={
+                "first_name":"Raj","last_name":"Salonia",
+                "email":email,"phone":phone,"graduation_year":"2028",
+                "work_authorized_india":True,
+                "approved_for_employer_submission":True
+            }
+        if not valid_profile(candidate):
+            return False
+        put_setting("autoapply_profile_v1",
+                    cipher.encrypt(json.dumps(candidate).encode()).decode())
+        return True
+
     def fingerprint(url):
         p=urlsplit(str(url or ""))
         return hashlib.sha256((p.hostname.lower()+p.path.rstrip("/")).encode()).hexdigest() if p.hostname else ""
@@ -261,6 +295,8 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
     @app.get("/api/autoapply")
     def auto_status():
         owner();ensure()
+        if os.getenv("OPPORTUNITY_OS_PROFILE_IMPORT_APPROVED")=="yes":
+            import_user_confirmed_profile_from_private_env()
         d=rules();p=profile();doc=get_resume()
         return {"rules":d,"profile_ready":valid_profile(p),"profile_email":p.get("email") if p else None,
                 "resume_ready":bool(doc),"tasks":list_tasks(),"task_summary":queue_counts(),
@@ -392,6 +428,13 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             refresh_employers()
         make_queue(600)
         return run_queue(limit=2)
+
+    # Private migration is idempotent. A failed DB connection leaves the app up
+    # and the profile can be retried on the next owner-authenticated status request.
+    try:
+        import_user_confirmed_profile_from_private_env()
+    except (OperationalError,InterfaceError):
+        app.logger.warning("Private applicant profile import deferred: database unavailable.")
 
     @app.get("/api/autoapply/backup")
     def auto_backup():
