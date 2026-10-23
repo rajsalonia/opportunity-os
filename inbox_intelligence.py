@@ -17,11 +17,11 @@ def classify_message(message,known_sent):
  text=subject+" "+snippet
  known={str(x.get("recipient","")).lower().strip() for x in known_sent}
  related=bool(sender and sender in known)
- if REJECTION.search(text):stage="Possible rejection — verify"
- elif INTERVIEW.search(text):stage="Possible interview — verify"
- elif ASSESSMENT.search(text):stage="Possible assessment — verify"
- elif APPLICATION.search(text):stage="Hiring-related message — review"
- else:stage="General email — review"
+ if REJECTION.search(text):stage="Possible rejection"
+ elif INTERVIEW.search(text):stage="Possible interview"
+ elif ASSESSMENT.search(text):stage="Possible assessment"
+ elif APPLICATION.search(text):stage="Needs review"
+ else:stage="Needs review"
  return {**message,"stage":stage,
     "possible_reply":related and not AUTOMATED.search(sender),
     "reply_evidence":"Sender matches an outreach recipient; check actual thread." if related else
