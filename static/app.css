@@ -36,3 +36,20 @@
 @media(max-width:760px){.career-orbit .orbit-core{visibility:hidden}.global-search input::placeholder{font-size:10px}.global-search{max-width:260px}}
 
 @media(max-width:760px){.board-column:has(.pipeline-empty){display:none}}
+
+
+/* Private Auto-Apply workspace: compact, accessible, responsive. */
+.automation-panel{margin-top:1.5rem;display:grid;gap:1.1rem}
+.automation-panel h3{font-size:1rem;margin:.25rem 0}
+.automation-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.automation-actions .muted{flex:1 1 240px}
+.automation-controls{align-items:start;gap:1.3rem}
+.automation-controls form{min-width:0;padding:1rem;border:1px solid var(--border,rgba(140,150,170,.2));border-radius:14px;background:var(--surface,rgba(100,110,140,.06))}
+.automation-controls input:not([type=checkbox]),.automation-controls select{width:100%}
+.automation-check{display:flex;align-items:flex-start;gap:.6rem;line-height:1.5}
+.automation-check input{flex:none;margin-top:.3rem}
+.automation-queue{display:grid;gap:.65rem;max-height:520px;overflow:auto}
+.automation-task{display:flex;justify-content:space-between;align-items:center;gap:1rem;border:1px solid var(--border,rgba(140,150,170,.2));border-radius:12px;padding:.9rem}
+.automation-task p,.automation-task small{display:block;margin:.3rem 0;color:var(--text-secondary,#9ca3af);overflow-wrap:anywhere}
+.automation-task-actions{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
+@media(max-width:720px){.automation-task{flex-direction:column;align-items:stretch}.automation-task-actions .button{justify-content:center}.automation-actions .button{flex:1 1 auto}}
