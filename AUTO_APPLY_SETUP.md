@@ -72,3 +72,11 @@ Each opportunity shows the provider, a longer description preview, and a full jo
 **Submission history**: In **My Applications → Auto-Apply Queue**, choose **Confirmed submitted** to view only employer-acknowledged submissions with their receipt and timestamp. **Needs review** shows forms or eligibility requiring manual work. The downloadable private receipts backup is independent of Gmail email history.
 
 **Automation activation**: Once the applicant profile and rules have been explicitly approved, routine eligible submissions through a genuine employer-authorized connector can run without repeated prompts. Missing authorization, custom employer questions, uncertain network outcomes, and ambiguous work eligibility must remain in review. The user does not need to approve every routine *supported* application, but the platform cannot override employer requirements or access controls.
+
+## India hiring expansion
+
+The **Career Sources** screen now contains 20 India/global discovery platforms (including Internshala, Unstop, Naukri, Foundit, Instahyre, Cutshort, Cuvette, Wellfound, Hirist, Freshersworld, AICTE Internship Portal, National Career Service, Superset and others). These links are explicitly marked **external discovery / manual application**. Their listings are not automatically ingested and the app does not log into these websites or submit forms there.
+
+An additional 28 India-focused employer-board candidates are included in the existing Greenhouse/Lever/Ashby public ATS refresh. Some candidate board identifiers may be inactive or not owned by the named company: failed boards are reported, and only actual returned job postings are saved. Never imply a board candidate is a verified open role.
+
+**Automation status**: public feed and employer ATS discovery is available from the Refresh button. Unattended daily refreshing still needs an authenticated external scheduler; adding the directory alone does not create one. Full auto-submission to every India job board is not available without supported employer APIs and/or authorized interactive integrations. Never claim a job was applied to until a real employer acknowledgment is recorded.
