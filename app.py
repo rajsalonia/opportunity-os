@@ -471,11 +471,19 @@ def refresh_extended_impl():
      "url":link,"provider":"ashby","description":desc,"score":score,"warnings":warning})
    return found,None
   except Exception:return [],company+" unavailable"
- # Daily refresh respects public feed limits and attribution.
+ # Feed providers impose polling limits; cache public-feed refresh for six hours.
+ with db.connect() as c:
+  last_feed=c.scalar(text("SELECT value FROM settings WHERE key='public_feed_checked_at_v1'"))
+ try:feed_recent=bool(last_feed and datetime.now(timezone.utc)-datetime.fromisoformat(last_feed)<timedelta(hours=6))
+ except (ValueError,TypeError):feed_recent=False
  with ThreadPoolExecutor(max_workers=12) as pool:
   board_futures=[pool.submit(get_board,b) for b in batch]
-  feed_futures=[pool.submit(fetch_public_feed,source,rank) for source in PUBLIC_REMOTE_FEEDS]
+  feed_futures=[] if feed_recent else [pool.submit(fetch_public_feed,source,rank) for source in PUBLIC_REMOTE_FEEDS]
   results=[f.result() for f in board_futures+feed_futures]
+ if not feed_recent:
+  with db.begin() as c:
+   c.execute(text("""INSERT INTO settings(key,value) VALUES('public_feed_checked_at_v1',:ts)
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),{"ts":now()})
  added=0;errors=[]
  with db.begin() as c:
   for rows,error in results:
@@ -487,7 +495,7 @@ def refresh_extended_impl():
     VALUES(:id,:company,:title,:location,:url,:provider,:description,:score,:warnings,'Discovered','','',:ts,:ts)
     ON CONFLICT(id) DO UPDATE SET title=excluded.title,location=excluded.location,description=excluded.description,
     score=excluded.score,warnings=excluded.warnings,updated=excluded.updated"""),r|{"ts":now()})
- return {"new":added,"checked":len(batch)+len(PUBLIC_REMOTE_FEEDS),"feeds":[p for p,_,_ in PUBLIC_REMOTE_FEEDS],"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
+ return {"new":added,"checked":len(batch)+len(feed_futures),"feeds":[p for p,_,_ in PUBLIC_REMOTE_FEEDS],"feeds_cached":feed_recent,"errors":errors,"hint":"Opening may not match your location, year or visa eligibility. Check original listing."}
 
 @app.post("/api/contacts/import")
 def import_hr_contacts():
