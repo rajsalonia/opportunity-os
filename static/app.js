@@ -236,10 +236,14 @@
     const india = /\bindia\b|delhi|noida|gurugram|gurgaon|bengaluru|bangalore|pune|hyderabad|mumbai|chennai|kolkata|faridabad|ghaziabad|ahmedabad|kochi|chandigarh/i;
     const records = (state.jobs || []).filter(job => {
       const geo = String(job.location || '');
-      return (!query || `${job.company} ${job.title} ${geo}`.toLowerCase().includes(query)) && (!stage || job.status === stage) && score(job) >= minimum && (location === 'all' || (location === 'ncr' && ncr.test(geo)) || (location === 'india' && india.test(geo)) || (location === 'remote' && /remote/i.test(geo)));
+      return (!query || `${job.company} ${job.title} ${geo}`.toLowerCase().includes(query)) && (!stage || job.status === stage) && score(job) >= minimum && (location === 'all' || (location === 'ncr' && ncr.test(geo)) || (location === 'india' && india.test(geo)) || (location === 'remote' && job.work_mode === 'Remote') || (location === 'worldwide' && job.work_mode === 'Remote' && /Worldwide claimed/.test(job.remote_scope || '')) || (location === 'india-remote' && job.work_mode === 'Remote' && /India mentioned/.test(job.remote_scope || '')) || (location === 'hybrid' && job.work_mode === 'Hybrid') || (location === 'onsite' && job.work_mode === 'On-site'));
     });
     records.sort((a,b) => {
       const sort = $('#sort-order').value;
+      if (sort === 'remote') {
+        const remoteRank=job => job.work_mode === 'Remote' ? (/India mentioned|Worldwide claimed/.test(job.remote_scope || '') ? 3 : 2) : job.work_mode === 'Hybrid' ? 1 : 0;
+        return remoteRank(b)-remoteRank(a) || score(b)-score(a);
+      }
       if (sort === 'company') return String(a.company).localeCompare(String(b.company));
       if (sort === 'newest') return String(b.discovered || '').localeCompare(String(a.discovered || ''));
       if (sort === 'deadline') return (dateOnly(a.deadline) || '9999').localeCompare(dateOnly(b.deadline) || '9999');
@@ -249,7 +253,7 @@
   }
   function jobCard(job) {
     const tracked = !['Discovered','Saved'].includes(job.status), saved = job.status === 'Saved';
-    return `<article class="job-card"><div class="job-card-top">${avatar(job.company)}<div class="job-card-copy"><div class="company-name">${esc(job.company)}</div>${detailsButton(job)}<div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span>${/remote/i.test(job.location || '') ? '<span class="badge">Remote listing</span>' : ''}<span class="provider-label">${esc(job.provider || 'Source not recorded')}</span>${job.deadline ? `<span>${icon('clock')}Deadline: ${esc(shortDate(job.deadline))}</span>` : ''}</div></div><div class="job-match" title="Estimated keyword match"><strong>${score(job)}<small> / 100</small></strong><small>EST. MATCH</small></div></div><div class="job-card-bottom"><span class="eligibility-label${job.warnings ? ' warning' : ''}">${icon('info')}${esc(job.warnings || 'Graduation eligibility unverified')}</span><span class="badge${job.status === 'Offer' ? ' positive' : ''}">${esc(job.status)}</span><button class="button" data-action="save" data-id="${esc(job.id)}" aria-pressed="${saved}"${tracked ? ' disabled title="Already tracked in your application pipeline"' : ''}>${icon(saved ? 'check' : 'bookmark')}${tracked ? 'Tracked' : saved ? 'Saved' : 'Save'}</button><button class="button" data-action="draft" data-id="${esc(job.id)}">${icon('mail')}Draft outreach</button>${officialLink(job,'button','Open listing')}</div></article>`;
+    return `<article class="job-card"><div class="job-card-top">${avatar(job.company)}<div class="job-card-copy"><div class="company-name">${esc(job.company)}</div>${detailsButton(job)}<div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span>${job.work_mode ? '<span class="badge">'+esc(job.work_mode)+'</span>' : ''}${job.work_mode === 'Remote' ? '<span class="badge">'+esc(job.remote_scope || 'Region unverified')+'</span>' : ''}<span class="provider-label">${esc(job.provider || 'Source not recorded')}</span>${job.deadline ? `<span>${icon('clock')}Deadline: ${esc(shortDate(job.deadline))}</span>` : ''}</div><p class="job-description-preview">${esc(job.description_preview || job.description?.slice(0,380) || 'Open the official listing for role responsibilities and requirements.')}</p></div><div class="job-match" title="Estimated keyword match"><strong>${score(job)}<small> / 100</small></strong><small>EST. MATCH</small></div></div><div class="job-card-bottom"><span class="eligibility-label${job.warnings ? ' warning' : ''}">${icon('info')}${esc(job.warnings || 'Graduation eligibility unverified')}</span><span class="badge${job.status === 'Offer' ? ' positive' : ''}">${esc(job.status)}</span><button class="button" data-action="save" data-id="${esc(job.id)}" aria-pressed="${saved}"${tracked ? ' disabled title="Already tracked in your application pipeline"' : ''}>${icon(saved ? 'check' : 'bookmark')}${tracked ? 'Tracked' : saved ? 'Saved' : 'Save'}</button><button class="button" data-action="draft" data-id="${esc(job.id)}">${icon('mail')}Draft outreach</button>${officialLink(job,'button','Open listing')}</div></article>`;
   }
   function renderExplore() {
     if (!state.jobs) { $('#jobs-list').innerHTML = '<div class="skeleton job-skeleton"></div><div class="skeleton job-skeleton"></div>'; return; }
@@ -260,7 +264,7 @@
     $('#load-more').hidden = jobs.length <= state.limit;
     $('#results-limit').textContent = jobs.length ? `Showing ${Math.min(state.limit,jobs.length)} of ${jobs.length}` + (state.summary?.total > state.jobs.length ? ` · Latest ${state.jobs.length} records loaded; export includes all records` : '') : '';
   }
-  function resetFilters() { $('#filters').reset(); $('#sort-order').value = 'match'; state.limit = 24; renderExplore(); }
+  function resetFilters() { $('#filters').reset(); $('#sort-order').value = 'remote'; state.limit = 24; renderExplore(); }
   $('#filters').addEventListener('submit', event => event.preventDefault());
   $('#filters').addEventListener('input', () => { state.limit = 24; renderExplore(); });
   $('#filters').addEventListener('change', () => { state.limit = 24; renderExplore(); });
@@ -334,14 +338,14 @@
   }
   function renderSources() {
     if (!state.sources) return;
-    const {default_boards:defaults,sources:custom,extended_boards:extended = []} = state.sources;
+    const {default_boards:defaults,sources:custom,extended_boards:extended = [],public_feeds:feeds = []} = state.sources;
     const combined = new Map([...defaults,...extended].map(source => [source.provider + ':' + source.slug,{...source,custom:false}]));
     custom.forEach(source => combined.set(source.provider + ':' + source.slug,{...source,custom:true}));
-    $('#source-summary').textContent = `${combined.size} configured boards · ${custom.length} custom · reachability checked on refresh`;
+    $('#source-summary').textContent = `${combined.size} employer-board candidates + ${feeds.length} global public feeds · ${custom.length} custom · failures shown on refresh`;
     $('#source-list').innerHTML = Array.from(combined.values()).map(source => {
       const boardUrl = ({greenhouse:'https://boards.greenhouse.io/',lever:'https://jobs.lever.co/',ashby:'https://jobs.ashbyhq.com/'})[source.provider];
       return `<div class="source-row"><div><strong>${esc(source.name)}</strong><small>${esc(source.provider)} / ${esc(source.slug)}</small></div><span class="mini-tag">${source.custom ? 'CUSTOM' : 'INCLUDED'}</span>${boardUrl ? `<a class="icon-button" href="${boardUrl + encodeURIComponent(source.slug)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc(source.name)} board">${icon('external')}</a>` : ''}${source.custom ? `<button class="icon-button" data-action="remove-source" data-id="${esc(source.id)}" aria-label="Remove custom ${esc(source.name)} source">${icon('x')}</button>` : ''}</div>`;
-    }).join('');
+    }).join('') + feeds.map(feed => '<div class="source-row"><div><strong>'+esc(feed.name)+'</strong><small>Worldwide remote public feed · '+esc(feed.provider)+'</small></div><span class="mini-tag">PUBLIC API</span><a class="icon-button" href="'+esc(safeUrl(feed.url))+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+esc(feed.name)+' source">'+icon('external')+'</a></div>').join('');
   }
   function renderSent() {
     if (!state.sent) return;
@@ -498,7 +502,7 @@
     $('#detail-stage').value = job.status;
     $('#detail-notes').value = job.notes || '';
     $('#detail-deadline').value = dateOnly(job.deadline);
-    $('#job-detail-content').innerHTML = `<div class="detail-company">${avatar(job.company)}<div><strong>${esc(job.company)}</strong><small>${esc(job.provider || 'Source not recorded')} · Added ${esc(shortDate(job.discovered))}</small></div></div><h2 id="job-dialog-title">${esc(job.title)}</h2><div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span><span class="match-pill">${score(job)}/100 estimated match</span></div>${officialLink(job,'button primary','Open official listing')}<div class="detail-callout">${esc(job.warnings || 'Graduation year and work authorization have not been verified.')} Check the official listing for eligibility, location requirements, and current availability. A match score is a keyword estimate.</div><div class="detail-description">${esc(job.description || 'No role description is available from this source. Open the original listing for the full details.')}</div>`;
+    $('#job-detail-content').innerHTML = `<div class="detail-company">${avatar(job.company)}<div><strong>${esc(job.company)}</strong><small>${esc(job.provider || 'Source not recorded')} · Added ${esc(shortDate(job.discovered))}</small></div></div><h2 id="job-dialog-title">${esc(job.title)}</h2><div class="job-card-meta"><span>${icon('pin')}${esc(job.location || 'Location not listed')}</span><span class="match-pill">${score(job)}/100 estimated match</span>${job.work_mode ? '<span class="badge">'+esc(job.work_mode)+'</span>' : ''}${job.work_mode === 'Remote' ? '<span class="badge">'+esc(job.remote_scope || 'Region unverified')+'</span>' : ''}</div>${officialLink(job,'button primary','Open official listing')}<div class="detail-callout">${esc(job.warnings || 'Graduation year and work authorization have not been verified.')} Check the official listing for eligibility, location requirements, and current availability. A match score is a keyword estimate.</div><div class="detail-description">${esc(job.description || 'No role description is available from this source. Open the original listing for the full details.')}</div>`;
     openDialog('#job-dialog');
   }
   $('#job-detail-form').addEventListener('submit',async event => {
