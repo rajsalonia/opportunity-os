@@ -654,6 +654,9 @@ def gmail_callback():
 @app.get("/api/gmail/updates")
 def gmail_updates():
  owner()
+ from inbox_intelligence import classify_message
+ with db.connect() as c:
+  sent_recipients=[{"recipient":x[0]} for x in c.execute(text("SELECT recipient FROM email_log WHERE status='sent' LIMIT 500"))]
  result=gmail_req("GET","messages?q="+__import__("urllib.parse",fromlist=["quote"]).quote(
   'newer_than:21d ("application" OR "interview" OR "assessment" OR "internship" OR "recruitment") -from:amazon.com')+"&maxResults=40")
  def scan_item(item):
@@ -667,7 +670,7 @@ def gmail_updates():
    elif any(y in s for y in ("interview","schedule a call","technical round")):stage="Possible interview"
    elif any(y in s for y in ("assessment","coding challenge","online test")):stage="Possible assessment"
    else:stage="Needs review"
-   return {"id":item["id"],"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage}
+   return classify_message({"id":item["id"],"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage},sent_recipients)
   except Exception:return None
  requested=result.get("messages",[])[:40]
  with ThreadPoolExecutor(max_workers=6) as pool:
