@@ -6,6 +6,7 @@ creation or inferred work authorization. Each returned URL links to its source.
 import hashlib
 import html
 import re
+import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 import requests
 
@@ -13,6 +14,7 @@ FEEDS=(
     ("jobicy","Jobicy","https://jobicy.com/api/v2/remote-jobs"),
     ("remotive","Remotive","https://remotive.com/api/remote-jobs"),
     ("arbeitnow","Arbeitnow","https://www.arbeitnow.com/api/job-board-api"),
+    ("weworkremotely","We Work Remotely","https://weworkremotely.com/remote-jobs.rss"),
 )
 REMOTE_TERMS=re.compile(r"\b(remote|work from anywhere|work from home|distributed|wfh|fully remote)\b",re.I)
 INDIA_TERMS=re.compile(r"\b(india|indian|delhi|noida|gurgaon|gurugram|ncr|pune|mumbai|hyderabad|bengaluru|bangalore|chennai|kolkata)\b",re.I)
@@ -94,6 +96,19 @@ def fetch_public_feed(source, rank, http_get=None):
         response=http_get(url,params=params,timeout=16,
                           headers={"User-Agent":"OpportunityOS/1.2 (personal job discovery)"})
         response.raise_for_status()
+        if provider=="weworkremotely":
+            # Official public RSS: preserve the publisher's canonical link.
+            root=ET.fromstring(response.content)
+            results=[]
+            for item in root.findall(".//item")[:250]:
+                title=(item.findtext("title") or "").strip()
+                company,separator,role=title.partition(": ")
+                if not separator:company,role="Employer not specified",title
+                job=normalize(provider,company,role,"Remote · Region unspecified",
+                              item.findtext("description") or "",
+                              (item.findtext("link") or "").strip(),rank,remote_flag=True)
+                if job:results.append(job)
+            return results,None
         payload=response.json()
         if provider=="jobicy":
             posts=payload.get("jobs",[]) if isinstance(payload,dict) else []
@@ -116,5 +131,5 @@ def fetch_public_feed(source, rank, http_get=None):
                               p.get("description"),p.get("url"),rank,remote_flag=p.get("remote") is True)
             if job:results.append(job)
         return results,None
-    except (requests.RequestException,ValueError,TypeError,KeyError):
+    except (requests.RequestException,ValueError,TypeError,KeyError,ET.ParseError):
         return [],label+" feed unavailable"
