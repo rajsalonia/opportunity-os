@@ -106,7 +106,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
             return "No supported employer ATS identified."
         return ""
 
-    def list_tasks(limit=80):
+    def list_tasks(limit=500):
         with db.connect() as c:
             rows=c.execute(text("""SELECT t.job_id,t.status,t.reason,t.receipt,t.attempted_at,t.updated_at,
                      j.company,j.title,j.location,j.url,j.provider,j.score
@@ -114,11 +114,17 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
                 ORDER BY t.updated_at DESC LIMIT :n"""),{"n":limit}).mappings().all()
         return [dict(x) for x in rows]
 
+    def queue_counts():
+        with db.connect() as c:
+            rows=c.execute(text("SELECT status,count(*) AS count FROM application_tasks GROUP BY status")).mappings().all()
+        counts={row["status"]:row["count"] for row in rows}
+        return {"total":sum(counts.values()),"by_status":counts}
+
     def get_resume():
         with db.connect() as c:
             return c.execute(resume_table.select().where(resume_table.c.id=="original")).mappings().first()
 
-    def make_queue(max_jobs=150):
+    def make_queue(max_jobs=600):
         ensure()
         r=rules()
         with db.begin() as c:
@@ -257,7 +263,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         owner();ensure()
         d=rules();p=profile();doc=get_resume()
         return {"rules":d,"profile_ready":valid_profile(p),"profile_email":p.get("email") if p else None,
-                "resume_ready":bool(doc),"tasks":list_tasks(),
+                "resume_ready":bool(doc),"tasks":list_tasks(),"task_summary":queue_counts(),
                 "profile_contact":{k:p.get(k,"") for k in ("first_name","last_name","email","phone")} if p else None,
                 "profile_work_authorized_india":p.get("work_authorized_india") is True if p else False,
                 "greenhouse_keys_configured":bool(os.getenv("GREENHOUSE_BOARD_KEYS_JSON")),
@@ -329,7 +335,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         data=request.get_json(silent=True) or {}
         try:limit=int(data.get("limit",150))
         except (ValueError,TypeError):limit=150
-        return {"queued":make_queue(max(1,min(limit,300)))}
+        return {"queued":make_queue(max(1,min(limit,1000)))}
 
     @app.post("/api/autoapply/approve/<jid>")
     def auto_approve(jid):
@@ -384,7 +390,7 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         # Queue refresh is performed separately in the dashboard, never by an unauthenticated caller.
         if refresh_employers is not None:
             refresh_employers()
-        make_queue(150)
+        make_queue(600)
         return run_queue(limit=2)
 
     @app.get("/api/autoapply/backup")
