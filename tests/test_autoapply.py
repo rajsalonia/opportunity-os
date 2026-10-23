@@ -215,3 +215,36 @@ def test_remote_location_restrictions_stay_review_only(client_and_db):
         c.execute(text("UPDATE jobs SET location='Remote USA only' WHERE id='eligible'"))
     counts=client.post("/api/autoapply/prepare").json["queued"]
     assert counts["review"]==2
+
+
+def test_autofill_pack_requires_login_and_keeps_unconfirmed_marks_blank(client_and_db):
+    client,db=client_and_db
+    assert client.get("/api/autoapply/pack/eligible").status_code==401
+    authenticate(client)
+    result=client.get("/api/autoapply/pack/eligible")
+    assert result.status_code==200
+    assert result.json["application"]["status"]=="prepared_not_submitted"
+    assert result.json["education"]["cgpa"]==""
+    assert result.json["links"]["linkedin"].endswith("/rajsalonia")
+    assert client.get("/api/autoapply/pack/nonexistent").status_code==404
+    attachment=client.get("/api/autoapply/pack/eligible?download=1")
+    assert attachment.status_code==200
+    assert b"opportunity-os-autofill-pack-v1" in attachment.data
+
+
+def test_professional_fields_persist_encrypted_and_reject_unverified_grade(client_and_db):
+    client,db=client_and_db
+    authenticate(client)
+    assert client.post("/api/autoapply/settings",json={"professional":{"cgpa":"8.0"}}).status_code==422
+    assert client.post("/api/autoapply/settings",json={"profile":approved_profile(),
+        "professional":{"college":"Sample Institute","linkedin":"https://www.linkedin.com/in/sample",
+                        "cgpa":"8.4"}}).status_code==200
+    data=client.get("/api/autoapply").json
+    assert data["professional_profile"]["cgpa"]=="8.4"
+    assert data["profile_contact"]["email"]=="demo@example.test"
+    with db.connect() as c:
+        encrypted=c.scalar(text("SELECT value FROM settings WHERE key='autoapply_profile_v1'"))
+    assert "Sample Institute" not in encrypted
+    assert "demo@example.test" not in encrypted
+    assert client.get("/api/autoapply/pack/eligible").json["education"]["cgpa"]=="8.4"
+    assert client.post("/api/autoapply/settings",json={"professional":{"cgpa":"9.0 SGPA"}}).status_code==422
