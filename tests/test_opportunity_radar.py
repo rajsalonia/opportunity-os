@@ -1,5 +1,6 @@
 """Opportunity Radar does not imply registration or job submission."""
 import pytest
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, text
 from opportunity_radar import parse_feed, refresh, snapshot, save, mark, FEEDS
 
@@ -54,7 +55,7 @@ def test_refresh_caches_and_preserves_saved_status(db,monkeypatch):
           category="Hackathon",location="See organizer",deadline="",published="",
           seen_at=ts,state="new",verification="Check organizer")] if item is FEEDS[0] else []),None
     monkeypatch.setattr(radar,"fetch",mocked_feed)
-    now=lambda:"2026-10-23T12:00:00+00:00"
+    now=lambda:datetime.now(timezone.utc).isoformat()
     first=refresh(db,now)
     assert first["new"]==1
     assert len(calls)==len(FEEDS)
