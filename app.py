@@ -768,7 +768,7 @@ def gmail_updates():
  sent_threads={str(x.get("gmail_thread_id") or "") for x in outbox if x.get("gmail_thread_id")}
  for item in result_items:
   sender=__import__("email.utils",fromlist=["parseaddr"]).parseaddr(item.get("from") or "")[1].lower()
-  if item.get("thread_id") in sent_threads and sender and not re.search(r"no.?reply|donotreply",sender,re.I):
+  if item.get("thread_id") in sent_threads and sender and item.get("stage") not in ("Automated reply","Delivery failure") and not re.search(r"no.?reply|donotreply|mailer-daemon|postmaster",sender,re.I):
    item["possible_reply"]=True
    item["reply_evidence"]="Shares a Gmail thread with outgoing outreach; verify the message."
  from mail_activity import ingest as record_mail_activity

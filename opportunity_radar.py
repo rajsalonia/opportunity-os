@@ -110,6 +110,8 @@ def refresh(db,clock):
       :state,:verification) ON CONFLICT(id) DO NOTHING"""),item)
     new+=max(0,r.rowcount)
   for item in api_items:
+   was_present=bool(c.execute(text("SELECT 1 FROM radar_items WHERE id=:id"),
+      {"id":item["id"]}).first())
    r=c.execute(text("""INSERT INTO radar_items(id,title,summary,url,source,category,location,
        deadline,published,seen_at,state,verification)
        VALUES(:id,:title,:summary,:url,:source,:category,:location,:deadline,:published,:seen_at,
@@ -118,7 +120,7 @@ def refresh(db,clock):
          deadline=CASE WHEN excluded.deadline!='' THEN excluded.deadline ELSE radar_items.deadline END,
          summary=excluded.summary,location=excluded.location,verification=excluded.verification
        """),item)
-   new+=max(0,r.rowcount) if r.rowcount and r.rowcount>0 else 0
+   if not was_present:new+=1
   c.execute(text("""INSERT INTO settings(key,value) VALUES('brabble_api_error',:error)
     ON CONFLICT(key) DO UPDATE SET value=excluded.value"""),
     {"error":api_error or ""})
