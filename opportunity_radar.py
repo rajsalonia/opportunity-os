@@ -19,6 +19,17 @@ FEEDS=[
  ("DEV • Hiring announcements","https://dev.to/feed/tag/hiring","Community post"),
  ("DEV • Fellowships","https://dev.to/feed/tag/fellowship","Community post"),
  ("DEV • Developer challenges","https://dev.to/feed/tag/devchallenge","Community post")]
+BAD_MAIL_PREFIX=re.compile(
+ r"^(?:re:|fw:|fwd:|application[\s:—–-]|thank you|thanks for|automatic reply|"
+ r"undeliverable|delivery failed|delivery status|we received|we've received|"
+ r"your application|your interview|interview invitation|assessment invitation|"
+ r"submission confirmed|job application status|update on your application)",re.I)
+NON_OPENING_STAGES={"Delivery failure","Automated reply","Application received",
+ "Possible rejection","Possible interview","Possible assessment"}
+def genuine_opening(subject,stage=""):
+ title=clean(subject,180)
+ return bool(CTA.search(title) and not BAD_MAIL_PREFIX.search(title) and
+    stage not in NON_OPENING_STAGES)
 CATEGORIES=("Hackathon","Event","Community post","Startup hiring","Internship","Fellowship","Scholarship","Other")
 STATES=("new","saved","dismissed")
 TAG=re.compile(r"<[^>]*>")
@@ -140,6 +151,8 @@ def snapshot(db):
   checked=c.scalar(text("SELECT value FROM settings WHERE key='radar_checked_at'"))
   last_errors=c.scalar(text("SELECT value FROM settings WHERE key='radar_source_errors'"))
   api_error=c.scalar(text("SELECT value FROM settings WHERE key='brabble_api_error'"))
+ rows=[r for r in rows if r.get("source")!="Gmail · opening alert" or
+       genuine_opening(r.get("title"))]
  return {"items":rows,"checked_at":checked,"count":len(rows),"failed_sources":((last_errors or "").split("|") if last_errors else [])+
          (["Brabble API"] if api_error else []),"refresh_hours":4,
      "sources":[{"name":x[0],"url":x[1]} for x in FEEDS]+
@@ -172,13 +185,13 @@ def ingest_mail_opportunities(db,clock,messages):
  """Save hiring/event announcements to the private radar as unverified leads."""
  ensure(db)
  inserted=0
- exclude=re.compile(r"rejection|not selected|thank you for applying|application received|interview|assessment|feedback|receipt|submission confirmed",re.I)
+ # Only announcement emails enter discovery; receipts remain in the private mail ledger.
  ts=clock()
  with db.begin() as c:
   for message in messages[:40]:
    uid=str(message.get("id") or "")
    title=clean(message.get("subject"),180)
-   if not re.fullmatch(r"[a-f0-9]{12,25}",uid) or not CTA.search(title) or exclude.search(title):
+   if not re.fullmatch(r"[a-f0-9]{12,25}",uid) or not genuine_opening(title,message.get("stage")):
     continue
    category="Hackathon" if "hackathon" in title.lower() else "Internship" if re.search(r"internship|intern",title,re.I) else "Startup hiring"
    body=clean(message.get("snippet"),280) or "Open Gmail to verify the original announcement."
