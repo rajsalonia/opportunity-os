@@ -367,17 +367,22 @@
     const ready=tasks.filter(item=>item.status==='ready').length;
     const review=tasks.filter(item=>item.status==='needs_review' || item.status==='unknown').length;
     $('#auto-overview').textContent=tasks.length+' queued · '+ready+' eligible · '+review+' need review · '+submitted+' confirmed submissions. Profile: '+(data.profile_ready?'approved':'not approved')+'. Employer key: '+(data.greenhouse_keys_configured?'configured':'not configured')+'. External schedule: '+(data.scheduled_trigger_configured?'configured':'not configured')+'.';
-    node.innerHTML=tasks.length ? tasks.slice(0,40).map(item=>{
+    const historyFilter=$('#auto-history-filter').value;
+    const visibleTasks=historyFilter==='all' ? tasks : tasks.filter(item=>item.status===historyFilter);
+    node.innerHTML=visibleTasks.length ? visibleTasks.slice(0,80).map(item=>{
       const link=safeUrl(item.url);
       const status=esc(String(item.status || '').replaceAll('_',' '));
       const reason=esc(item.reason || '');
       const title=esc(item.company)+' — '+esc(item.title);
       const open=link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer" class="button small">Official application ↗</a>' : '';
       const approve=item.status==='needs_review' ? '<button class="button small" type="button" data-auto-approve="'+esc(item.job_id)+'">I verified eligibility</button>' : '';
-      const receipt=item.receipt ? '<small>Employer receipt: '+esc(item.receipt)+'</small>' : '';
-      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+'</div><div class="automation-task-actions">'+open+approve+'</div></article>';
-    }).join('') : '<p class="muted">No applications queued yet. Click Find eligible opportunities to classify listings.</p>';
+      const receipt=item.receipt ? '<small>Employer confirmation: '+esc(item.receipt)+'</small>' : '';
+      const when=item.attempted_at ? '<small>Attempted: '+esc(shortTime(item.attempted_at))+'</small>' : '';
+      const submitted=item.status==='submitted' ? '<span class="badge positive">Confirmed submitted</span>' : '';
+      return '<article class="automation-task"><div><strong>'+title+'</strong><p>'+esc(item.location || 'Location unconfirmed')+' · '+esc(item.provider || 'Other ATS')+' · '+esc(item.score)+'% estimated match</p><small>'+status+(reason ? ' — '+reason : '')+'</small>'+receipt+when+submitted+'</div><div class="automation-task-actions">'+open+approve+'</div></article>';
+    }).join('') : '<p class="muted">No applications in this view. Choose All applications or refresh eligible opportunities.</p>';
   }
+  $('#auto-history-filter').addEventListener('change',renderAutomation);
   async function reloadAutomation() {
     state.autoapply=await api('/api/autoapply');
     renderAutomation();
