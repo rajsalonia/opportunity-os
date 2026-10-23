@@ -209,12 +209,18 @@ def register(app, db, owner, check_origin, now, has_persistent_db, resume_table,
         if not remaining:return {"attempted":0,"message":"Daily submission limit reached."}
         attempted=0;submitted=0;review=0
         with db.connect() as c:
-            candidates=c.execute(text("""SELECT t.job_id,j.* FROM application_tasks t
+            candidates=c.execute(text("""SELECT t.job_id,t.reviewed_at,j.* FROM application_tasks t
                 JOIN jobs j ON j.id=t.job_id WHERE t.status='ready'
                 ORDER BY j.score DESC LIMIT :n"""),{"n":min(limit,remaining)}).mappings().all()
         for job in candidates:
             reason=eligibility(job,int(r["minimum_match"]))
-            if reason:
+            # A per-job owner confirmation can resolve missing information,
+            # but never override explicit exclusions, closed jobs or match limits.
+            owner_verified=bool(job.get("reviewed_at")) and reason in (
+                "Graduation year 2028 is not confirmed in the listing.",
+                "India-based or explicitly India-eligible remote location not confirmed.",
+                "Employer eligibility warning needs manual review.")
+            if reason and not owner_verified:
                 with db.begin() as c:
                     c.execute(text("""UPDATE application_tasks SET status='needs_review',reason=:why,updated_at=:ts
                         WHERE job_id=:id AND status='ready'"""),{"why":reason,"ts":now(),"id":job["job_id"]})
