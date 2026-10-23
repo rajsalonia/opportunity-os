@@ -720,7 +720,7 @@ def gmail_updates():
  with db.connect() as c:
   sent_recipients=[{"recipient":x[0]} for x in c.execute(text("SELECT recipient FROM email_log WHERE status='sent' LIMIT 500"))]
  result=gmail_req("GET","messages?q="+__import__("urllib.parse",fromlist=["quote"]).quote(
-  'in:inbox newer_than:30d -category:promotions -category:social')+"&maxResults=75")
+  'in:inbox newer_than:30d -category:promotions -category:social')+"&maxResults=50")
  def scan_item(item):
   try:
    mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date")
@@ -734,7 +734,7 @@ def gmail_updates():
    else:stage="Needs review"
    return classify_message({"id":item["id"],"thread_id":mail.get("threadId",""),"from":headers.get("from",""),"subject":title,"date":headers.get("date",""),"snippet":sample,"stage":stage},sent_recipients)
   except Exception:return None
- requested=result.get("messages",[])[:75]
+ requested=result.get("messages",[])[:50]
  with ThreadPoolExecutor(max_workers=6) as pool:
   result_items=[x for x in pool.map(scan_item,requested) if x]
  # Read the authorized account's own outgoing mail to expose sent history
@@ -743,7 +743,7 @@ def gmail_updates():
  try:
   from urllib.parse import quote
   sent_list=gmail_req("GET","messages?q="+quote(
-   'in:sent newer_than:60d (application OR internship OR intern OR engineer OR developer)',safe="")+"&maxResults=70")
+   'in:sent newer_than:60d (application OR internship OR intern OR engineer OR developer)',safe="")+"&maxResults=45")
   def outbound(item):
    try:
     mail=gmail_req("GET","messages/"+item["id"]+"?format=metadata&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Date")
@@ -753,7 +753,7 @@ def gmail_updates():
        "gmail_thread_id":mail.get("threadId","")}
    except Exception:return None
   with ThreadPoolExecutor(max_workers=5) as pool:
-   outbox=[x for x in pool.map(outbound,sent_list.get("messages",[])[:70]) if x]
+   outbox=[x for x in pool.map(outbound,sent_list.get("messages",[])[:45]) if x]
  except Exception:outbox=[]
  from email.utils import getaddresses
  related=sent_recipients+[{"recipient":address.lower()} for mail in outbox
