@@ -482,7 +482,7 @@ def import_hr_contacts():
  with db.begin() as c:
   for item in rows[:6000]:
    lower={str(k or "").lower().strip():str(v or "").strip() for k,v in item.items()}
-   email=next((lower[k] for k in ("email","email address","hr email","contact email","work email") if lower.get(k)),"").lower()[:250]
+   email=next((lower[k] for k in ("email","email id","email-id","emailid","e-mail","email address","hr email","contact email","work email") if lower.get(k)),"").lower()[:250]
    company=next((lower[k] for k in ("company","company name","organization","employer") if lower.get(k)),"")[:150]
    if not company or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+",email):
     skipped+=1;continue
@@ -491,7 +491,7 @@ def import_hr_contacts():
    c.execute(text("INSERT INTO contacts(id,company,name,email,role,notes) VALUES(:id,:company,:name,:email,:role,:notes)"),
     {"id":secrets.token_hex(16),"company":company,"email":email,
      "name":lower.get("name",lower.get("hr name",""))[:150],
-     "role":lower.get("role","")[:150],"notes":""})
+     "role":lower.get("role","")[:150],"notes":lower.get("linkedin","")[:500]})
    inserted+=1
  return {"imported":inserted,"skipped":skipped,"total_rows":min(len(rows),6000)}
 
