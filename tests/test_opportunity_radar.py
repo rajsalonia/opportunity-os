@@ -63,3 +63,23 @@ def test_refresh_caches_and_preserves_saved_status(db,monkeypatch):
     second=refresh(db,now)
     assert second["skipped"] is True
     assert snapshot(db)["items"][0]["state"]=="saved"
+
+def test_only_opening_announcements_from_gmail_enter_private_radar(db):
+    from opportunity_radar import ingest_mail_opportunities
+    messages=[
+      {"id":"a"*16,"subject":"Hiring! Remote backend internship applications open",
+       "snippet":"Python FastAPI roles","date":"2026-10-23"},
+      {"id":"b"*16,"subject":"Thank you for applying — internship",
+       "snippet":"Your application is received"},
+      {"id":"c"*16,"subject":"Interview invitation for internship",
+       "snippet":"Meet the recruiter next week"},
+      {"id":"d"*16,"subject":"A normal newsletter","snippet":"Random"},
+    ]
+    first=ingest_mail_opportunities(db,lambda:"2026-10-23T16:00:00Z",messages)
+    second=ingest_mail_opportunities(db,lambda:"2026-10-23T16:30:00Z",messages)
+    assert first==1 and second==0
+    item=snapshot(db)["items"][0]
+    assert item["source"]=="Gmail · opening alert"
+    assert item["category"]=="Internship"
+    assert "not verified" in item["verification"]
+    assert item["state"]=="new"
