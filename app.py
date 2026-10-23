@@ -697,10 +697,12 @@ def gmail_updates():
  related=sent_recipients+[{"recipient":address.lower()} for mail in outbox
     for _,address in getaddresses([mail.get("to","")])]
  result_items=[classify_message(item,related) for item in result_items]
+ from opportunity_radar import ingest_mail_opportunities
+ imported_signals=ingest_mail_opportunities(db,now,result_items)
  checked_at=now()
  with db.begin() as c:
   c.execute(text("INSERT INTO settings(key,value) VALUES('gmail_last_checked',:v) ON CONFLICT(key) DO UPDATE SET value=excluded.value"),{"v":checked_at})
- return {"messages":result_items,"outbox":outbox,"checked_at":checked_at,"failed":len(requested)-len(result_items),
+ return {"messages":result_items,"outbox":outbox,"imported_signals":imported_signals,"checked_at":checked_at,"failed":len(requested)-len(result_items),
          "note":"Labels are hints, not verified outcomes. No reply was sent."}
 @app.post("/api/gmail/send")
 def gmail_send_reviewed():
