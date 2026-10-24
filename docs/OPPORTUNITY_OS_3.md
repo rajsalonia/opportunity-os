@@ -102,3 +102,7 @@ Twenty-one additional official destinations are included under Source Health: Ha
 
 ### Refresh feedback
 After a refresh is queued, the workspace polls its read-only source-health endpoint for up to three minutes. It reports completion and the number of degraded/cooldown sources, then refreshes the visible Today/Discover/Saved/Applications view if no form or dialog is open. This does not bypass source cooldowns or guarantee a fixed number of jobs. On a sleeping Render free-tier instance, refreshes still require a visit or some authorized wake-up; no always-on scheduler is claimed.
+
+
+### SmartRecruiters eligibility enrichment
+The public SmartRecruiters Posting API documents `GET /v1/companies/{companyIdentifier}/postings/{postingId}`. After retrieving up to 500 index records, the connector now fetches detailed sections for **at most 25 relevant early-career engineering titles**, preferring Indian locations. It extracts employer job descriptions, qualifications, and company summaries, retaining the original posting URL. If details are unavailable or a schema mismatch occurs, the source reports a degraded/error state rather than manufacturing eligibility. Full-page extraction of all hundreds of postings is deliberately avoided. Source: https://developers.smartrecruiters.com/reference/v1getposting .

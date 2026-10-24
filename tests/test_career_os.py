@@ -358,3 +358,33 @@ def test_expanded_discovery_directories_are_not_marked_as_api_connections(servic
         assert name in names
     assert all(item['enabled']==0 and item['provider']=='directory' for item in rows)
     assert not service.store.rows('SELECT * FROM career_sync')
+
+
+def test_smartrecruiters_fetches_bounded_public_intern_details():
+    calls=[]
+    def smart(url,headers,params):
+        calls.append(url)
+        if url.endswith('/postings'):
+            posts=[{'id':str(n),'name':('Software Engineer Intern' if n==1 else 'Senior Data Architect'),
+                    'location':{'city':'Bangalore','country':'IN'},
+                    'company':{'name':'Example Employer'}} for n in range(1,6)]
+            return json.dumps({'totalFound':5,'content':posts}).encode(),{},200
+        assert url.endswith('/postings/1')
+        return json.dumps({'id':'1','postingUrl':'https://jobs.smartrecruiters.com/Example/1',
+          'jobAd':{'sections':{'jobDescription':{'text':'Build backend APIs in Python.'},
+          'qualifications':{'text':'Students graduating in 2028 can apply.'}}}}).encode(),{},200
+    source=Discovery.board('smartrecruiters','Example','Example Employer','https://example.org')
+    posts,_,complete,_=fetch_source(source,getter=smart)
+    assert complete is True and len(calls)==2
+    assert len(posts)==1  # only the real early-career role survives normalization
+    assert 'graduating in 2028' in posts[0]['description']
+    assert posts[0]['url']=='https://jobs.smartrecruiters.com/Example/1'
+
+def test_smartrecruiters_invalid_detail_does_not_silently_create_verified_facts():
+    def invalid(url,headers,params):
+        if url.endswith('/postings'):
+            return json.dumps({'totalFound':1,'content':[{'id':'1','name':'Software Engineer Intern'}]}).encode(),{},200
+        return json.dumps({'id':'unexpected','jobAd':{}}).encode(),{},200
+    source=Discovery.board('smartrecruiters','Example','Example','https://example.org')
+    with pytest.raises(SourceFailure) as exc:fetch_source(source,getter=invalid)
+    assert exc.value.category=='invalid_detail_schema'

@@ -119,11 +119,36 @@ def fetch_source(source, headers=None, getter=bounded_get):
             allposts+=data['content'];offset+=len(data['content'])
             if len(data['content'])<100 or offset>=int(data.get('totalFound',offset+1)):break
         complete=offset>=int(data.get('totalFound',offset+1))
-        # List API contains no requirements. Do not invent descriptions or fetch hundreds of detail pages.
-        posts=[{'id':p.get('id'),'title':p.get('name'),'company':(p.get('company') or {}).get('name') or source['name'],
-                'location':', '.join(str(v) for v in [(p.get('location') or {}).get('city'),(p.get('location') or {}).get('country')] if v),
-                'url':p.get('ref') if str(p.get('ref','')).startswith('https://jobs.smartrecruiters.com/') else 'https://jobs.smartrecruiters.com/'+slug+'/'+str(p.get('id')),
-                'published':p.get('releasedDate'),'description':'Employer posting. Requirements and compensation are not included in the public list response; review the official form.'} for p in allposts]
+        # Public list results do not carry qualifications. Fetch a small, relevant
+        # sample of *public* detail records using the documented GET endpoint.
+        # Preserve every list record and the full index for correct closure logic.
+        interested=[p for p in allposts if TECH.search(str(p.get('name') or '')) and EARLY.search(str(p.get('name') or ''))]
+        interested.sort(key=lambda p:not bool(re.search(r'(?i)india|delhi|bengaluru|bangalore|remote|hyderabad',
+            str((p.get('location') or {}).get('city',''))+' '+str((p.get('location') or {}).get('country','')))))
+        detailed={}
+        for item in interested[:25]:
+            posting_id=str(item.get('id') or '')
+            if not re.fullmatch(r'[A-Za-z0-9-]{1,80}',posting_id):continue
+            full,_,_=read('https://api.smartrecruiters.com/v1/companies/'+slug+'/postings/'+posting_id)
+            if not isinstance(full,dict) or str(full.get('id'))!=posting_id:raise SourceFailure('invalid_detail_schema')
+            detailed[posting_id]=full
+        posts=[]
+        for p in allposts:
+            details=detailed.get(str(p.get('id'))) or {}
+            section=(details.get('jobAd') or {}).get('sections') or {}
+            description='\n'.join(plain(section[name].get('text')) for name in (
+                'jobDescription','qualifications','additionalInformation','companyDescription')
+                if isinstance(section.get(name),dict) and section[name].get('text'))
+            location=p.get('location') or {}
+            place=', '.join(str(v) for v in (location.get('city'),location.get('country')) if v)
+            if location.get('remote') is True:place+=' · Remote'
+            original='https://jobs.smartrecruiters.com/'+slug+'/'+str(p.get('id'))
+            link=details.get('postingUrl') or (p.get('ref') if str(p.get('ref','')).startswith('https://jobs.smartrecruiters.com/') else original)
+            posts.append({'id':p.get('id'),'title':p.get('name'),
+                'company':(p.get('company') or {}).get('name') or source['name'],
+                'location':place,'url':link,
+                'published':p.get('releasedDate'),
+                'description':description or 'Posting details not retrieved; open the original employer listing for eligibility and compensation.'})
     elif provider in ('jobicy','remotive','arbeitnow'):
         from global_discovery import FEEDS
         endpoint=next(x[2] for x in FEEDS if x[0]==provider)
