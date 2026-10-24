@@ -28,7 +28,7 @@ class SourceFailure(Exception):
 def bounded_get(url, headers=None, params=None):
     """Only adapters construct these URLs. No arbitrary source URL or redirect is fetched."""
     allowed={'boards-api.greenhouse.io','api.lever.co','api.ashbyhq.com','api.smartrecruiters.com',
-      'jobicy.com','remotive.com','www.arbeitnow.com','brabble.ai','dev.to','hnrss.org','himalayas.app','internscan.vercel.app'}
+      'jobicy.com','remotive.com','www.arbeitnow.com','brabble.ai','dev.to','hnrss.org','himalayas.app','internscan.vercel.app','weworkremotely.com'}
     if urlsplit(url).scheme!='https' or urlsplit(url).hostname not in allowed: raise SourceFailure('unsupported_host')
     try:
         response=requests.get(url,params=params,headers={'User-Agent':'OpportunityOS/3.0 (personal discovery; cached)',**(headers or {})},
@@ -185,7 +185,14 @@ class Discovery:
                 entries.append(self.board(provider,slug,company,reference))
             from global_discovery import FEEDS as REMOTE
             entries += [dict(id=p,provider=p,slug='',name=n,category='Jobs',mode='API',url=u,reference=u,interval_minutes=480,enabled=1) for p,n,u in REMOTE]
-            entries += [dict(id='rss-'+hashlib.sha256(u.encode()).hexdigest()[:16],provider='rss',slug='',name=n,category=c,mode='Feed',url=u,reference=u,interval_minutes=480,enabled=1) for n,u,c in FEEDS]
+            # We Work Remotely explicitly publishes public RSS, with mandatory attribution.
+            # Both categories stay source-labelled, and their regional eligibility is unknown
+            # until an employer's actual posting is reviewed.
+            extra_feeds=(
+                ('We Work Remotely · Programming','https://weworkremotely.com/categories/remote-programming-jobs.rss','Jobs'),
+                ('We Work Remotely · DevOps','https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss','Jobs'),
+            )
+            entries += [dict(id='rss-'+hashlib.sha256(u.encode()).hexdigest()[:16],provider='rss',slug='',name=n,category=c,mode='Feed',url=u,reference=u,interval_minutes=480,enabled=1) for n,u,c in (*FEEDS,*extra_feeds)]
             directory=list(self.portals)+[
                 ('Devfolio','https://devfolio.co/hackathons','Hackathons','India'),('MLH','https://mlh.io/seasons/2027/events','Hackathons','Global'),
                 ('Devpost','https://devpost.com/hackathons','Hackathons','Global'),('Google Summer of Code','https://summerofcode.withgoogle.com/','Open source','Global'),

@@ -315,3 +315,32 @@ def test_relevant_employer_boards_are_registered_with_verified_slugs(service):
         assert rows[source_id]['reference'].startswith('https://jobs.')
     # Registry presence is not equivalent to an observed successful scan.
     assert not service.store.rows('SELECT * FROM career_sync')
+
+
+def test_official_remote_rss_is_source_attributed_and_filters_early_career(service):
+    from career_os.discovery import Discovery
+    discovery=Discovery(service.store,service,existing_boards=[],portals=[])
+    discovery.seed()
+    rows=service.store.rows("SELECT * FROM career_sources WHERE name LIKE 'We Work Remotely%'")
+    assert len(rows)==2
+    assert all(row['mode']=='Feed' and row['category']=='Jobs' and row['enabled']==1 for row in rows)
+    source=rows[0]
+    now=datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+    xml=('<rss version="2.0"><channel>'
+         '<item><title>Backend Software Engineering Intern</title>'
+         '<description>Python backend engineering internship. Remote, region not verified.</description>'
+         '<link>https://weworkremotely.com/remote-jobs/example/intern</link>'
+         '<pubDate>'+now+'</pubDate></item>'
+         '<item><title>Senior Software Engineering Manager</title>'
+         '<description>Senior manager role</description>'
+         '<link>https://weworkremotely.com/remote-jobs/example/senior</link></item>'
+         '</channel></rss>').encode()
+    def response(url,headers=None,params=None):
+        assert url==source['url']
+        return xml,{'ETag':'"wwr-test"'},200
+    result=discovery.run_source(source,response)
+    assert result['status']=='healthy' and result['records']==1
+    item=service.snapshot()[0]
+    assert item['provider']=='rss'
+    assert item['eligibility']['code'] in ('unknown','likely')
+    assert item['source_records'][0]['url'].startswith('https://weworkremotely.com/')
