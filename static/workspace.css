@@ -2164,3 +2164,18 @@ dialog::backdrop {
   .detail-section p,.detail-section li,.detail-fact strong,
   .detail-description,.checklist-item {font-size:14px}
 }
+
+/* Decision-first discovery: four visible filters and optional advanced controls. */
+.filter-primary select {flex:1 1 175px;max-width:none;font-size:13px;min-height:42px}
+.filter-advanced {margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.filter-advanced summary {cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:6px 2px}
+.filter-advanced summary:hover {color:var(--accent)}
+.filter-advanced summary .icon {height:16px;width:16px}
+.filter-advanced .filter-row select {flex:1 1 160px;max-width:none;min-height:40px;font-size:12px}
+.card-next-action {display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0 0;color:var(--ink);font-size:13px;font-weight:600}
+.card-next-action small {font-size:11px;color:var(--muted);font-weight:400}
+.card-next-action .icon {height:16px;width:16px;color:var(--accent)}
+@media(max-width:700px) {
+ .filter-primary select,.filter-advanced .filter-row select {flex-basis:calc(50% - 6px);min-width:0}
+ .card-next-action {font-size:12px}
+}
