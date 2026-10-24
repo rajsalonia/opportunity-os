@@ -207,6 +207,7 @@ class CareerService:
             if item['archived'] and settings.get('view')!='archive':continue
             if settings.get('view')=='saved' and not item['saved']:continue
             if settings.get('view')=='applications' and item['stage']=='Discovered':continue
+            if settings.get('view')=='discover' and item['stage'] in TERMINAL:continue
             if settings.get('view')=='archive' and not item['archived']:continue
             if settings.get('view')=='dismissed' and not item['dismissed']:continue
             if settings.get('eligibility')=='actionable' and item['eligibility']['code'] not in ('eligible','likely'):continue

@@ -86,3 +86,5 @@ The original version 3 card markup was hard to scan because of very small text a
 
 ## October 24: application priorities and less cluttered discovery
 The Discover page now shows four essential selectors by default (type, eligibility, next action and location), with the six detailed search facets in an accessible native Advanced filters expander. Server-side filters accept exactly the existing rules-engine action buckets. Opportunity cards display a transparent next-action label and suggested review date, explicitly **not** an official employer deadline. The Today view shows actionable "Apply today / Deadline approaching" opportunities first when any exist, then verified/largely eligible opportunities. It does not recommend already-applied stages as new applications. The previously connected private data tables and their contents are untouched.
+
+The Discover list now excludes previously submitted or terminal-stage applications by default. These records remain visible under Applications and can still be retrieved by explicit priority/status filters. This prevents misleading duplicate calls to apply to a role that already has recorded submission evidence.

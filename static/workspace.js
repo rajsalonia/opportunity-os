@@ -136,7 +136,7 @@ function filters(){
   </form>`;
 }
 async function renderOpportunities(ticket){
-  const page=state.page,view=page==='saved'?'saved':page==='applications'?'applications':state.filters.view||'';
+  const page=state.page,view=page==='saved'?'saved':page==='applications'?'applications':state.filters.view||'discover';
   const params=new URLSearchParams({...state.filters,view,page:state.pageNumber,size:18});
   const data=await api('opportunities?'+params);if(ticket!==state.request)return;remember(data.items);
   const titles={discover:['Your next chapter','Discover opportunities','Real leads. Clear requirements. Choose what deserves your time.'],saved:['A shortlist with intention','Saved opportunities','Keep the opportunities you want to return to.'],applications:['From preparation to progress','Your applications','Every step tracked. Every submission explicitly confirmed.']};

@@ -281,3 +281,15 @@ def test_daily_queue_excludes_submitted_roles_and_filters_priority(service):
     assert first not in [i['key'] for i in after['review_this_week']]
     assert after['already_applied_count']>=1
     assert first in [i['key'] for i in service.filtered({'priority':'Already applied'})[0]]
+
+
+def test_discover_does_not_repeat_applied_roles_as_new_vacancies(service):
+    applied=add(service,'already-submitted')
+    new=add(service,'not-applied')
+    service.update(applied,{'stage':'Applied','submitted_by_owner':True,'reference':'Synthetic receipt A2026'})
+    discover_keys={item['key'] for item in service.filtered({'view':'discover'})[0]}
+    applications_keys={item['key'] for item in service.filtered({'view':'applications'})[0]}
+    assert new in discover_keys
+    assert applied not in discover_keys
+    assert applied in applications_keys
+    assert applied in {item['key'] for item in service.filtered({'view':'','priority':'Already applied'})[0]}
