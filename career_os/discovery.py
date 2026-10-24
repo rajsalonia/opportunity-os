@@ -198,7 +198,29 @@ class Discovery:
                 ('Devpost','https://devpost.com/hackathons','Hackathons','Global'),('Google Summer of Code','https://summerofcode.withgoogle.com/','Open source','Global'),
                 ('Outreachy','https://www.outreachy.org/','Open source','Eligibility-specific'),('GitHub Student Developer Pack','https://education.github.com/pack','Student benefits','Global'),
                 ('Google Research','https://research.google/programs-and-events/','Research','Global'),('Microsoft Research','https://www.microsoft.com/en-us/research/academic-program/','Research','Global'),
-                ('National Scholarship Portal','https://scholarships.gov.in/','Scholarships','India'),('DAAD Scholarships','https://www.daad.de/en/studying-in-germany/scholarships/','Scholarships','Germany')]
+                ('National Scholarship Portal','https://scholarships.gov.in/','Scholarships','India'),('DAAD Scholarships','https://www.daad.de/en/studying-in-germany/scholarships/','Scholarships','Germany'),
+                # Additional real official directories; navigation only, not automated API coverage.
+                ('Hack2Skill','https://hack2skill.com/','Hackathons','India'),
+                ('HackerEarth Challenges','https://www.hackerearth.com/challenges/','Hackathons','Global'),
+                ('Kaggle Competitions','https://www.kaggle.com/competitions','Competitions','Global'),
+                ('Hugging Face','https://huggingface.co/','AI competitions','Global'),
+                ('DoraHacks','https://dorahacks.io/','Hackathons','Global'),
+                ('ETHGlobal','https://ethglobal.com/','Hackathons','Global'),
+                ('WeMakeDevs','https://www.wemakedevs.org/','Hackathons','Global'),
+                ('TAIKAI','https://taikai.network/','Hackathons','Global'),
+                ('CTFtime','https://ctftime.org/','Security competitions','Global'),
+                ('MLH Fellowship','https://fellowship.mlh.io/','Fellowships','Global'),
+                ('Linux Foundation Mentorship','https://mentorship.lfx.linuxfoundation.org/','Fellowships','Global'),
+                ('Startup India','https://www.startupindia.gov.in/','Startup research','India'),
+                ('Product Hunt','https://www.producthunt.com/','Startup research','Global'),
+                ('Google Developer Groups','https://gdg.community.dev/','Technical events','Global'),
+                ('AWS Events','https://aws.amazon.com/events/','Technical events','Global'),
+                ('Microsoft Reactor','https://developer.microsoft.com/en-us/reactor/','Technical events','Global'),
+                ('CNCF Events','https://www.cncf.io/events/','Technical events','Global'),
+                ('Luma','https://lu.ma/','Technical events','Global'),
+                ('Meetup','https://www.meetup.com/','Technical events','Global'),
+                ('Eventbrite','https://www.eventbrite.com/','Technical events','Global'),
+                ('IEEE Conferences','https://www.ieee.org/conferences/','Research','Global')]
             entries += [dict(id='search-'+hashlib.sha256(u.encode()).hexdigest()[:16],provider='directory',slug='',name=n,category=c,mode='Search only',url=u,reference=u,interval_minutes=0,enabled=0) for n,u,c,_ in directory]
             for name,url in [('Recruitee','https://docs.recruitee.com/reference/authentication-1'),('Workday','https://www.workday.com/'),('Oracle Recruiting','https://www.oracle.com/human-capital-management/recruiting/'),('SAP SuccessFactors','https://www.sap.com/products/hcm/recruiting-software.html')]:
                 entries.append(dict(id='credentials-'+name.lower().replace(' ','-'),provider='unconfigured',slug='',name=name,category='Employer systems',mode='Requires credentials',url=url,reference=url,interval_minutes=0,enabled=0))

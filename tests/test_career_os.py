@@ -344,3 +344,17 @@ def test_official_remote_rss_is_source_attributed_and_filters_early_career(servi
     assert item['provider']=='rss'
     assert item['eligibility']['code'] in ('unknown','likely')
     assert item['source_records'][0]['url'].startswith('https://weworkremotely.com/')
+
+
+def test_expanded_discovery_directories_are_not_marked_as_api_connections(service):
+    from career_os.discovery import Discovery
+    engine=Discovery(service.store,service,existing_boards=[],portals=[])
+    engine.seed()
+    rows=service.store.rows("SELECT * FROM career_sources WHERE mode='Search only'")
+    names={item['name'] for item in rows}
+    for name in ('Kaggle Competitions','DoraHacks','HackerEarth Challenges',
+                 'MLH Fellowship','Google Developer Groups','AWS Events',
+                 'CNCF Events','Product Hunt','Microsoft Reactor'):
+        assert name in names
+    assert all(item['enabled']==0 and item['provider']=='directory' for item in rows)
+    assert not service.store.rows('SELECT * FROM career_sync')
