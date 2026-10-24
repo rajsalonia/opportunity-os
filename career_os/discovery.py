@@ -28,7 +28,7 @@ class SourceFailure(Exception):
 def bounded_get(url, headers=None, params=None):
     """Only adapters construct these URLs. No arbitrary source URL or redirect is fetched."""
     allowed={'boards-api.greenhouse.io','api.lever.co','api.ashbyhq.com','api.smartrecruiters.com',
-      'jobicy.com','remotive.com','www.arbeitnow.com','brabble.ai','dev.to','hnrss.org','himalayas.app','internscan.vercel.app','weworkremotely.com'}
+      'jobicy.com','remotive.com','www.arbeitnow.com','brabble.ai','dev.to','hnrss.org','himalayas.app','internscan.vercel.app','weworkremotely.com','remoteok.com'}
     if urlsplit(url).scheme!='https' or urlsplit(url).hostname not in allowed: raise SourceFailure('unsupported_host')
     try:
         response=requests.get(url,params=params,headers={'User-Agent':'OpportunityOS/3.0 (personal discovery; cached)',**(headers or {})},
@@ -149,6 +149,21 @@ def fetch_source(source, headers=None, getter=bounded_get):
                 'location':place,'url':link,
                 'published':p.get('releasedDate'),
                 'description':description or 'Posting details not retrieved; open the original employer listing for eligibility and compensation.'})
+    elif provider=='remoteok':
+        # Remote OK's own FAQ publishes a no-key JSON job feed. Keep direct Remote OK
+        # listing links and source credit. The first JSON row may be API metadata.
+        data,meta,status=read('https://remoteok.com/api')
+        if status==304:return [],meta,False,304
+        if not isinstance(data,list):raise SourceFailure('invalid_schema')
+        for p in data[:250]:
+            if not isinstance(p,dict) or not p.get('position') or not p.get('url'):continue
+            posts.append({'id':p.get('id'),'company':p.get('company'),
+                'title':p.get('position'),
+                'location':str(p.get('location') or 'Region not specified')+' · Remote',
+                'url':p.get('url'),
+                'description':p.get('description') or '',
+                'published':p.get('date') if isinstance(p.get('date'),str) else None})
+        complete=False # Feed windows are never proof that a listing has closed.
     elif provider in ('jobicy','remotive','arbeitnow'):
         from global_discovery import FEEDS
         endpoint=next(x[2] for x in FEEDS if x[0]==provider)
@@ -210,6 +225,9 @@ class Discovery:
                 entries.append(self.board(provider,slug,company,reference))
             from global_discovery import FEEDS as REMOTE
             entries += [dict(id=p,provider=p,slug='',name=n,category='Jobs',mode='API',url=u,reference=u,interval_minutes=480,enabled=1) for p,n,u in REMOTE]
+            entries.append(dict(id='remoteok-public',provider='remoteok',slug='',name='Remote OK',category='Jobs',
+                mode='API',url='https://remoteok.com/api',reference='https://remoteok.com/faq',
+                interval_minutes=480,enabled=1))
             # We Work Remotely explicitly publishes public RSS, with mandatory attribution.
             # Both categories stay source-labelled, and their regional eligibility is unknown
             # until an employer's actual posting is reviewed.

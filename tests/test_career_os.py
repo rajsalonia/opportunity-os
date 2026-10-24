@@ -393,3 +393,28 @@ def test_smartrecruiters_invalid_detail_does_not_silently_create_verified_facts(
     source=Discovery.board('smartrecruiters','Example','Example','https://example.org')
     with pytest.raises(SourceFailure) as exc:fetch_source(source,getter=invalid)
     assert exc.value.category=='invalid_detail_schema'
+
+
+def test_remoteok_public_feed_skips_metadata_and_attributes_source(service):
+    from career_os.discovery import Discovery
+    d=Discovery(service.store,service,existing_boards=[],portals=[])
+    d.seed()
+    source=service.store.rows("SELECT * FROM career_sources WHERE id='remoteok-public'")[0]
+    def getter(url,headers,params):
+        assert url=='https://remoteok.com/api'
+        return json.dumps([
+            {'legal':'remoteok.com attribution required'},
+            {'id':'101','position':'Software Backend Intern','company':'Example Startup',
+             'location':'Remote - India',
+             'url':'https://remoteok.com/remote-jobs/example-backend-intern',
+             'description':'Remote software engineering internship. Python and APIs.'},
+            {'id':'102','position':'Senior Staff Engineering Manager','company':'Example Startup',
+             'url':'https://remoteok.com/remote-jobs/example-staff',
+             'description':'Staff engineer role.'}]).encode(),{},200
+    result=d.run_source(source,getter)
+    assert result['status']=='healthy' and result['records']==1
+    rec=service.snapshot()[0]
+    assert rec['provider']=='remoteok'
+    assert rec['url']=='https://remoteok.com/remote-jobs/example-backend-intern'
+    assert rec['extracted']['work_mode']=='Remote'
+    assert rec['eligibility']['code'] in ('unknown','likely')

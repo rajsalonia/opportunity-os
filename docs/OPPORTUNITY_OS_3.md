@@ -106,3 +106,7 @@ After a refresh is queued, the workspace polls its read-only source-health endpo
 
 ### SmartRecruiters eligibility enrichment
 The public SmartRecruiters Posting API documents `GET /v1/companies/{companyIdentifier}/postings/{postingId}`. After retrieving up to 500 index records, the connector now fetches detailed sections for **at most 25 relevant early-career engineering titles**, preferring Indian locations. It extracts employer job descriptions, qualifications, and company summaries, retaining the original posting URL. If details are unavailable or a schema mismatch occurs, the source reports a degraded/error state rather than manufacturing eligibility. Full-page extraction of all hundreds of postings is deliberately avoided. Source: https://developers.smartrecruiters.com/reference/v1getposting .
+
+
+### Remote OK public JSON API
+The connector now supports [Remote OK's official free public JSON feed](https://remoteok.com/faq), using `https://remoteok.com/api` without credentials. Results are limited to a bounded batch, filtered to early-career technical roles, credited to Remote OK, and linked back to the original Remote OK listing as its publisher requires. Region restrictions and India eligibility are never inferred from the generic word 'remote'. Missing salary remains undisclosed, and a rolling feed cannot conclusively mark jobs closed. The configured API registry therefore increases by one, to 23 before owner additions; only a real successful scan contributes to live coverage.
