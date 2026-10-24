@@ -171,6 +171,18 @@ class Discovery:
             # Employer slug comes from the employer's published SmartRecruiters careers page.
             entries.append(self.board('smartrecruiters','BoschGroup','Bosch Group','https://careers.smartrecruiters.com/BoschGroup/india'))
             entries.append(self.board('ashby','notion','Notion','https://www.notion.com/careers'))
+            # These ATS slugs are grounded in employer-published job pages with
+            # India-based or India-remote engineering internships (October 2026).
+            # Being listed does not establish graduation eligibility or salary.
+            for provider, slug, company, reference in (
+                ('lever','merklescience','Merkle Science','https://jobs.lever.co/merklescience'),
+                ('lever','hevodata','Hevo Data','https://jobs.lever.co/hevodata'),
+                ('ashby','interview-kickstart','Interview Kickstart','https://jobs.ashbyhq.com/interview-kickstart'),
+                ('ashby','aistudio','AiStudio','https://jobs.ashbyhq.com/aistudio'),
+                ('ashby','outmarket','Outmarket AI','https://jobs.ashbyhq.com/outmarket'),
+                ('ashby','emergence','Emergence Software','https://jobs.ashbyhq.com/emergence'),
+            ):
+                entries.append(self.board(provider,slug,company,reference))
             from global_discovery import FEEDS as REMOTE
             entries += [dict(id=p,provider=p,slug='',name=n,category='Jobs',mode='API',url=u,reference=u,interval_minutes=480,enabled=1) for p,n,u in REMOTE]
             entries += [dict(id='rss-'+hashlib.sha256(u.encode()).hexdigest()[:16],provider='rss',slug='',name=n,category=c,mode='Feed',url=u,reference=u,interval_minutes=480,enabled=1) for n,u,c in FEEDS]

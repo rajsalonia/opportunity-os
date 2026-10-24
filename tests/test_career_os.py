@@ -294,3 +294,24 @@ def test_discover_does_not_repeat_applied_roles_as_new_vacancies(service):
     assert applied in applications_keys
     assert applied in {item['key'] for item in service.filtered({'view':'','priority':'Already applied'})[0]}
     assert applied in {item['key'] for item in service.filtered({'view':'discover','priority':'Already applied'})[0]}
+
+
+def test_relevant_employer_boards_are_registered_with_verified_slugs(service):
+    from career_os.discovery import Discovery
+    discovery=Discovery(service.store,service,existing_boards=[],portals=[])
+    discovery.seed()
+    rows={item['id']:item for item in service.store.rows("SELECT * FROM career_sources")}
+    for source_id,provider,slug in (
+        ('lever-merklescience','lever','merklescience'),
+        ('lever-hevodata','lever','hevodata'),
+        ('ashby-interview-kickstart','ashby','interview-kickstart'),
+        ('ashby-aistudio','ashby','aistudio'),
+        ('ashby-outmarket','ashby','outmarket'),
+        ('ashby-emergence','ashby','emergence')
+    ):
+        assert rows[source_id]['slug']==slug
+        assert rows[source_id]['provider']==provider
+        assert rows[source_id]['mode']=='API'
+        assert rows[source_id]['reference'].startswith('https://jobs.')
+    # Registry presence is not equivalent to an observed successful scan.
+    assert not service.store.rows('SELECT * FROM career_sync')
