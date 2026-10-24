@@ -219,6 +219,29 @@ async function route(){
 function navigate(page,filter){state.filters=filter?{eligibility:filter}:{};state.pageNumber=1;if(location.hash==='#'+page)route();else location.hash=page;}
 async function updateOpportunity(key,changes){const item=await mutate('opportunities/'+encodeURIComponent(key),changes,'PATCH');remember([item]);return item;}
 async function refreshUnderlying(){if(state.detail&&$('#detail-dialog').open)await showDetail(state.detail.key,state.detailTab);else await route();}
+
+async function monitorSourceRefresh(launchResult){
+  // This only observes the per-source refresh; it never retries or bypasses cooldown.
+  if(!launchResult?.queued)return;
+  for(let i=0;i<30;i++){
+    await new Promise(resolve=>setTimeout(resolve,6000));
+    let status;
+    try{status=await api('sources');}catch{return;}
+    if(status.running)continue;
+    const failed=status.sources.filter(x=>['degraded','cooldown'].includes(x.status)).length;
+    toast('Source check finished.'+(failed?' '+failed+' sources need review in Settings.':' Check your updated leads.'));
+    // Never erase unsaved input or interrupt an active opportunity dialog.
+    if(['today','discover','saved','applications'].includes(state.page)
+       && !$('#detail-dialog').open
+       && !$('#assistant-dialog').open
+       && !document.activeElement?.closest('form')){
+      await route();
+    }
+    return;
+  }
+  toast('Source checking is taking longer than expected. Review source health in Settings.');
+}
+
 async function ask(question){$('#assistant-answer').textContent='Reviewing your recorded evidence…';try{const response=await mutate('intelligence',{question,keys:[...state.selected]});$('#assistant-answer').innerHTML=`<div>${esc(response.answer)}</div>${response.citations.map(c=>link(esc(c.title)+' '+icon('arrow-up-right'),c.url,'citation')).join('')}<div class="engine-label">${esc(response.engine)}<br>${esc(response.limitations)}</div>`;}catch(error){$('#assistant-answer').textContent=error.message;}}
 document.addEventListener('click',async event=>{
   const close=event.target.closest('[data-close]');if(close){close.closest('dialog').close();return;}
@@ -234,7 +257,7 @@ document.addEventListener('click',async event=>{
     else if(action==='theme'){const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;localStorage.setItem('career-theme',theme);}
     else if(action==='menu'){const open=$('#sidebar').classList.toggle('open');el.setAttribute('aria-expanded',String(open));}
     else if(action==='logout'){await mutate('/api/logout');location.href='/';}
-    else if(action==='refresh'){const r=await mutate('refresh');toast(r.status);}
+    else if(action==='refresh'){const r=await mutate('refresh');toast(r.status);monitorSourceRefresh(r).catch(()=>{});}
     else if(action==='detail')await showDetail(key);
     else if(action==='checklist')await showDetail(key,'checklist');
     else if(action==='save'||action==='detail-save'){const x=state.items.get(key);await updateOpportunity(key,{saved:!x.saved});toast(x.saved?'Removed from Saved':'Saved to your shortlist');await refreshUnderlying();}
@@ -289,5 +312,5 @@ document.addEventListener('submit',async event=>{
 });
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){$('#sidebar').classList.remove('open');$('.mobile-menu').setAttribute('aria-expanded','false');}if((event.ctrlKey||event.metaKey)&&event.key==='k'){event.preventDefault();if($('#search-form input'))$('#search-form input').focus();else navigate('discover');}});
 window.addEventListener('hashchange',()=>{state.pageNumber=1;route();});
-async function init(){try{state.bootstrap=await api('bootstrap');await route();mutate('refresh').catch(()=>{});}catch(error){$('#content').innerHTML=empty('Your workspace needs a moment',error.message,'');}}
+async function init(){try{state.bootstrap=await api('bootstrap');await route();mutate('refresh').then(monitorSourceRefresh).catch(()=>{});}catch(error){$('#content').innerHTML=empty('Your workspace needs a moment',error.message,'');}}
 init();

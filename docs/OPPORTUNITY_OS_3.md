@@ -99,3 +99,6 @@ Two additional permitted public feeds are monitored: [We Work Remotely – Progr
 
 ### More global discovery directories (manual/search-only)
 Twenty-one additional official destinations are included under Source Health: Hack2Skill, HackerEarth challenges, Kaggle competitions, Hugging Face, DoraHacks, ETHGlobal, WeMakeDevs, TAIKAI, CTFtime, MLH Fellowship, LFX Mentorship, Startup India, Product Hunt, GDG, AWS events, Microsoft Reactor, CNCF events, Luma, Meetup, Eventbrite, and IEEE conferences. They are clearly **Search only / not automatically scanned**. Users open the real publisher page and save suitable opportunities with source attribution; unsupported unofficial scraping is not claimed.
+
+### Refresh feedback
+After a refresh is queued, the workspace polls its read-only source-health endpoint for up to three minutes. It reports completion and the number of degraded/cooldown sources, then refreshes the visible Today/Discover/Saved/Applications view if no form or dialog is open. This does not bypass source cooldowns or guarantee a fixed number of jobs. On a sleeping Render free-tier instance, refreshes still require a visit or some authorized wake-up; no always-on scheduler is claimed.
