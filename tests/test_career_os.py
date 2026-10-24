@@ -178,7 +178,12 @@ def test_lever_pagination_and_incomplete_smartrecruiters():
     source=Discovery.board('lever','example','Example','https://example.org')
     rows,_,complete,_=fetch_source(source,getter=lever)
     assert len(rows)==101 and calls==[0,100] and complete
-    def smart(url,headers,params):return json.dumps({'totalFound':1000,'content':[{'id':str(params['offset']+i),'name':'Software Intern','location':{'country':'India'}} for i in range(100)]}).encode(),{},200
+    def smart(url,headers,params):
+        if '/postings/' in url:
+            posting_id=url.rsplit('/',1)[-1]
+            return json.dumps({'id':posting_id,'postingUrl':'https://jobs.smartrecruiters.com/Example/'+posting_id,
+                 'jobAd':{'sections':{'qualifications':{'text':'Students welcome.'}}}}).encode(),{},200
+        return json.dumps({'totalFound':1000,'content':[{'id':str(params['offset']+i),'name':'Software Intern','location':{'country':'India'}} for i in range(100)]}).encode(),{},200
     source=Discovery.board('smartrecruiters','Example','Example','https://example.org')
     rows,_,complete,_=fetch_source(source,getter=smart)
     assert len(rows)==500 and complete is False
