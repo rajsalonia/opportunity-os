@@ -213,6 +213,7 @@ class CareerService:
             if settings.get('eligibility') in ('eligible','likely','unknown','ineligible','closed') and settings['eligibility']!=item['eligibility']['code']:continue
             if settings.get('type') and settings['type'].lower() not in item['category'].lower():continue
             if settings.get('stage') and item['stage']!=settings['stage']:continue
+            if settings.get('priority') and item['recommendation']['bucket']!=settings['priority']:continue
             if settings.get('mode') and settings['mode']!=item['extracted']['work_mode']:continue
             location=settings.get('location')
             if location=='india' and not re.search(r'\bindia\b|delhi|noida|gurgaon|gurugram|bengaluru|bangalore|hyderabad|pune|mumbai|chennai|kolkata',item.get('location') or '',re.I):continue
@@ -364,6 +365,9 @@ class CareerService:
         last_visit=self.store.setting('career_last_visit')
         suitable=[item for item in items if item['stage'] not in TERMINAL and item['eligibility']['code'] in ('eligible','likely')]
         research=[item for item in items if item['stage'] not in TERMINAL and item['eligibility']['code']=='unknown']
+        apply_today=[item for item in suitable if item['recommendation']['bucket'] in ('Apply today','Deadline approaching')]
+        review_week=[item for item in suitable if item['recommendation']['bucket']=='Worth reviewing this week']
+        already_applied=[item for item in items if item['stage'] in ('Applied','Assessment','Interview','Offer')]
         deadlines=self.calendar();groups={'today':[],'week':[],'month':[],'later':[]}
         for event in deadlines:
             delta=(date.fromisoformat(event['deadline'].get('local_date') or event['deadline']['date'])-day).days
@@ -384,7 +388,9 @@ class CareerService:
             {'kind':'deadline','count':sum(0<=(date.fromisoformat(event['deadline'].get('local_date') or event['deadline']['date'])-day).days<=2 for event in deadlines),'title':'Recorded deadlines in the next 2 days','action':'calendar'},
             {'kind':'inbox','count':sum(row['category'] in ('Possible interview','Possible assessment','Possible offer','Possible human reply') for row in inbox),'title':'Inbox signals needing your review','action':'inbox'},
             {'kind':'followup','count':len(followups),'title':'Follow-ups to consider','action':'applications'}]
-        return {'date':daystring,'priorities':priorities,'recommended':suitable[:4],'research_first':research[:3],
+        return {'date':daystring,'priorities':priorities,'recommended':suitable[:4],
+            'apply_today':apply_today[:5],'review_this_week':review_week[:5],
+            'already_applied_count':len(already_applied),'research_first':research[:3],
             'recently_discovered':[item for item in sorted(items,key=lambda item:str(item.get('first_seen') or ''),reverse=True) if not last_visit or str(item.get('first_seen') or '')>last_visit][:5],
             'last_visit':last_visit,'deadlines':{name:rows[:8] for name,rows in groups.items()},
             'undated_count':sum(not item['extracted']['deadline']['date'] for item in items),

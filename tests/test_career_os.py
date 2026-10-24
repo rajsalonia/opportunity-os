@@ -264,3 +264,20 @@ def test_v3_api_auth_csrf_pagination_and_exports():
     assert export['format']=='opportunity-os-workspace-v3'
     assert not set(export)&{'oauth_tokens','contacts','private_documents','mail_messages'}
     assert client.get('/api/v3/calendar.ics').mimetype=='text/calendar'
+
+
+def test_daily_queue_excludes_submitted_roles_and_filters_priority(service):
+    first=add(service,'queue-first')
+    second=add(service,'queue-second')
+    before=service.today()
+    assert first in [i['key'] for i in before['recommended']]
+    assert second in [i['key'] for i in before['recommended']]
+    priority=service.get(first)['recommendation']['bucket']
+    assert first in [i['key'] for i in service.filtered({'priority':priority})[0]]
+    service.update(first,{'stage':'Applied','submitted_by_owner':True,'reference':'Synthetic confirmation R123'})
+    after=service.today()
+    assert first not in [i['key'] for i in after['recommended']]
+    assert first not in [i['key'] for i in after['apply_today']]
+    assert first not in [i['key'] for i in after['review_this_week']]
+    assert after['already_applied_count']>=1
+    assert first in [i['key'] for i in service.filtered({'priority':'Already applied'})[0]]
