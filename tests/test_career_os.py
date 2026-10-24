@@ -293,3 +293,4 @@ def test_discover_does_not_repeat_applied_roles_as_new_vacancies(service):
     assert applied not in discover_keys
     assert applied in applications_keys
     assert applied in {item['key'] for item in service.filtered({'view':'','priority':'Already applied'})[0]}
+    assert applied in {item['key'] for item in service.filtered({'view':'discover','priority':'Already applied'})[0]}
