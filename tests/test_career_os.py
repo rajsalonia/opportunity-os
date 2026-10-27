@@ -431,3 +431,26 @@ def test_remoteok_public_feed_skips_metadata_and_attributes_source(service):
     assert rec['url']=='https://remoteok.com/remote-jobs/example-backend-intern'
     assert rec['extracted']['work_mode']=='Remote'
     assert rec['eligibility']['code'] in ('unknown','likely')
+
+
+def test_enhanced_search_filtering_modes_batches_and_skills(service):
+    k1 = add(service, 'hybrid-role', title='Backend Engineering Intern', description='Hybrid role in Delhi NCR. Monthly stipend INR 30000. Batch 2027 graduates. Skills required: FastAPI, Docker.')
+    k2 = add(service, 'onsite-role', title='Frontend Engineer', description='On-site role in Bengaluru. Batch 2028 graduates. React, TypeScript.')
+    
+    # Test implicit stipend -> paid
+    items, implicit = service.filtered({'q': 'stipend backend'})
+    assert implicit.get('paid') == 'yes'
+    assert any(i['key'] == k1 for i in items)
+
+    # Test implicit hybrid mode
+    items, implicit = service.filtered({'q': 'hybrid internship'})
+    assert implicit.get('mode') == 'Hybrid'
+    assert any(i['key'] == k1 for i in items)
+
+    # Test implicit 2027 graduation year
+    items, implicit = service.filtered({'q': '2027 batch'})
+    assert implicit.get('year') == '2027'
+
+    # Test extracted skills in search haystack
+    items, _ = service.filtered({'q': 'docker'})
+    assert any(i['key'] == k1 for i in items)

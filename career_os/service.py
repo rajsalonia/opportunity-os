@@ -192,14 +192,17 @@ class CareerService:
     def filtered(self,query):
         items=self.snapshot();q=str(query.get('q','')).strip().lower()[:300]
         implicit={}
-        if re.search(r'\bpaid\b',q):implicit['paid']='yes'
+        if re.search(r'\bpaid\b|\bstipend\b',q):implicit['paid']='yes'
         if re.search(r'\bremote\b',q):implicit['mode']='Remote'
+        elif re.search(r'\bhybrid\b',q):implicit['mode']='Hybrid'
+        elif re.search(r'\bon[- ]?site\b|\bin[- ]?person\b',q):implicit['mode']='On-site'
         if re.search(r'\bindia\b',q):implicit['location']='india'
         if re.search(r'\bdelhi|ncr\b',q):implicit['location']='ncr'
-        if '2028' in q:implicit['year']='2028'
+        for y in ('2028','2027','2026','2025'):
+            if y in q:implicit['year']=y;break
         for category in ('hackathon','fellowship','scholarship','event','internship'):
             if category in q:implicit['type']=category
-        terms=[word for word in re.findall(r'[a-z0-9+#.]+',q) if word not in {'paid','remote','in','india','delhi','ncr','2028','accepting','graduates','graduating','students','for','me','show','the','a','an','and','internships','internship','hackathons','hackathon','jobs','opportunities','this','week','fellowships','fellowship','scholarships','scholarship','events','event'}]
+        terms=[word for word in re.findall(r'[a-z0-9+#.]+',q) if word not in {'paid','stipend','remote','hybrid','onsite','person','in','india','delhi','ncr','2028','2027','2026','2025','accepting','graduates','graduating','students','for','me','show','the','a','an','and','internships','internship','hackathons','hackathon','jobs','opportunities','this','week','fellowships','fellowship','scholarships','scholarship','events','event','roles','role','batch'}]
         settings={**implicit,**{k:v for k,v in query.items() if v not in ('',None,'all')}}
         result=[]
         for item in items:
@@ -229,7 +232,8 @@ class CareerService:
                 if not target:continue
                 delta=(date.fromisoformat(target)-datetime.now(ZoneInfo('Asia/Kolkata')).date()).days
                 if not 0<=delta<={'today':0,'week':7,'month':30}[settings['deadline']]:continue
-            haystack=(str(item.get('title'))+' '+str(item.get('company'))+' '+item['extracted']['description']+' '+str(item.get('location'))).lower()
+            skills_text=' '.join(item['extracted'].get('required_skills',[])+item['extracted'].get('preferred_skills',[]))
+            haystack=(str(item.get('title'))+' '+str(item.get('company'))+' '+item['extracted']['description']+' '+str(item.get('location'))+' '+str(item.get('category'))+' '+str(item.get('provider'))+' '+str(item['extracted']['work_mode'])+' '+skills_text).lower()
             if terms and not all(term in haystack for term in terms):continue
             result.append(item)
         sort=settings.get('sort','priority')
