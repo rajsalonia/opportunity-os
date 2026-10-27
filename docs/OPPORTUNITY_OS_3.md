@@ -110,3 +110,12 @@ The public SmartRecruiters Posting API documents `GET /v1/companies/{companyIden
 
 ### Remote OK public JSON API
 The connector now supports [Remote OK's official free public JSON feed](https://remoteok.com/faq), using `https://remoteok.com/api` without credentials. Results are limited to a bounded batch, filtered to early-career technical roles, credited to Remote OK, and linked back to the original Remote OK listing as its publisher requires. Region restrictions and India eligibility are never inferred from the generic word 'remote'. Missing salary remains undisclosed, and a rolling feed cannot conclusively mark jobs closed. The configured API registry therefore increases by one, to 23 before owner additions; only a real successful scan contributes to live coverage.
+
+
+### Stage filter pills, smart search and source deduplication
+The workspace includes:
+- **Application stage tabs**: One-click stage filter pills (`All tracked`, `Preparing`, `Applied`, `Assessment`, `Interview`, `Offer`, `Rejected`, `Closed`) on the Applications page, plus inline row management actions.
+- **Enhanced search indexing**: Implicit keyword extraction detects `stipend` (paid compensation), work modes (`remote`, `hybrid`, `on-site`), graduation years (`2028`, `2027`, `2026`, `2025`), and queries indexed against extracted technical skills and provider metadata.
+- **ATS URL normalization**: Unifies SmartRecruiters `careers.*` and `jobs.*` paths into canonical identity strings and deduplicates source record lines during record merging.
+- **Centralized error responses**: Centralized JSON handlers for 405 Method Not Allowed and 500 Internal Server Error, ensuring consistent API contracts and contextual logging.
+- **Elapsed deadline protection**: Today's priority strip filters out elapsed deadline instants so past deadlines do not show as upcoming.

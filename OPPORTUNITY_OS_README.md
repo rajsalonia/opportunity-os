@@ -30,6 +30,19 @@ export HTTPS_ONLY=false
 gunicorn -w 1 -b 0.0.0.0:8000 app:app
 ```
 
+## Running tests
+```bash
+python -m pytest
+```
+On Windows PowerShell:
+```powershell
+$env:APP_PASSWORD = "test-secret-not-a-real-password"
+$env:SESSION_SECRET = "test-session-secret-for-test-only"
+$env:HTTPS_ONLY = "false"
+python -m pytest
+```
+If executing in environments where binary C-extensions are restricted by Application Control policies, standard pure-Python execution is supported out of the box.
+
 ## Current functionality
 - Private login; verified public employer board search; skills-based match scoring; 2028-eligibility warning; location filters; application stages.
 - CSV app export; contact import (CSV/XLSX) after permanent database connection.
