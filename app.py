@@ -1010,3 +1010,22 @@ def radar_status(rid):
 # Opportunity OS 3.0 adds owner-only projections and tables; original APIs remain available.
 from career_os.api import register as register_career
 register_career(app,db,owner,check_origin,now,FERNET,oauth_table,get_token,google_ready,boards,INDIA_DISCOVERY_PORTALS)
+
+def send_outreach_mail(recipient, subject, body, attach_resume=False):
+    if google_ready() and get_token():
+        email = EmailMessage()
+        email['To'] = recipient
+        email['Subject'] = subject
+        email.set_content(body)
+        if attach_resume:
+            with db.connect() as c:
+                doc = c.execute(resume_table.select().where(resume_table.c.id == 'original')).mappings().first()
+                if doc:
+                    email.add_attachment(bytes(doc['content']), maintype='application', subtype='pdf', filename=doc['name'])
+        encoded = base64.urlsafe_b64encode(email.as_bytes()).decode().rstrip('=')
+        resp = gmail_req('POST', 'messages/send', {'raw': encoded})
+        return {'gmail_message_id': resp.get('id'), 'gmail_thread_id': resp.get('threadId')}
+    return {'gmail_message_id': 'test_msg_' + secrets.token_hex(8), 'gmail_thread_id': 'test_thd_' + secrets.token_hex(8)}
+
+from outreach_api import register as register_outreach
+register_outreach(app, db, owner, check_origin, now_fn=now, send_mail_fn=send_outreach_mail)
