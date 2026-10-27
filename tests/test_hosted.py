@@ -82,3 +82,11 @@ def test_source_validation():
   good=c.post("/api/sources",json={"provider":"ashby","slug":"exampleboard","name":"Sample Hiring"})
   assert good.status_code==200
   assert any(x["slug"]=="exampleboard" for x in c.get("/api/sources").json["sources"])
+
+
+def test_api_error_handlers_return_json():
+ with app.test_client() as c:
+  # 405 Method Not Allowed on API route returns JSON
+  res = c.delete("/api/session")
+  assert res.status_code == 405
+  assert "error" in res.json

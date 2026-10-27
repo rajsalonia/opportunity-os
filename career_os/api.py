@@ -54,11 +54,17 @@ def register(app,db,owner,check_origin,clock,cipher,token_table,legacy_token,goo
                 check_origin()
                 if not secrets.compare_digest(request.headers.get('X-CSRF-Token',''),session.get('career_csrf','missing')):abort(403)
 
+    import logging
+    logger = logging.getLogger('career_os.api')
+
     def run(action):
         try:return action()
         except SourceFailure as exc:return {'error':'Public source validation failed: '+exc.category},422
         except ValueError as exc:return {'error':str(exc)},422
         except LookupError as exc:return {'error':str(exc)},404
+        except Exception as exc:
+            logger.exception("API exception: %s", exc)
+            return {'error':'This action could not be completed. Your saved records are preserved.'},500
 
     def body():
         value=request.get_json(silent=True)

@@ -191,11 +191,16 @@ def storage_error(error):
 @app.errorhandler(401)
 @app.errorhandler(403)
 @app.errorhandler(404)
+@app.errorhandler(405)
 @app.errorhandler(413)
 @app.errorhandler(422)
+@app.errorhandler(500)
 @app.errorhandler(503)
 def api_error(error):
- if request.path.startswith("/api/"):return jsonify(error=error.description),error.code
+ if request.path.startswith("/api/"):
+  desc = getattr(error, "description", "Request error")
+  code = getattr(error, "code", 500)
+  return jsonify(error=desc), code
  return error
 @app.get("/api/session")
 def whoami():return {"authenticated":bool(session.get("owner")),"storage":"persistent_postgres" if "postgres" in url else "temporary_sqlite","gmail_requires_user_setup":True}
