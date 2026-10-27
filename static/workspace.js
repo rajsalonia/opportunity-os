@@ -211,7 +211,7 @@ async function renderSettings(ticket){
 }
 async function route(){
   const [page,sub]=location.hash.slice(1).split('/');state.page=['today','discover','saved','applications','inbox','calendar','settings'].includes(page)?page:'today';if(state.page==='settings'&&sub)state.settings=sub;
-  const ticket=++state.request;$$('[data-nav]').forEach(a=>{if(a.dataset.nav===state.page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  const ticket=++state.request;$('#content').dataset.page=state.page;$('[data-nav]').forEach(a=>{if(a.dataset.nav===state.page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   $('#breadcrumb').innerHTML=`Workspace <span>/</span> ${state.page[0].toUpperCase()+state.page.slice(1)}`;$('#sidebar').classList.remove('open');$('.mobile-menu').setAttribute('aria-expanded','false');
   $('#content').innerHTML='<div class="loading-state" role="status">Loading your '+esc(state.page)+'…</div>';
   try{if(state.page==='today')await renderToday(ticket);else if(['discover','saved','applications'].includes(state.page))await renderOpportunities(ticket);else if(state.page==='inbox')await renderInbox(ticket);else if(state.page==='calendar')await renderCalendar(ticket);else await renderSettings(ticket);}catch(error){if(ticket===state.request)$('#content').innerHTML=heading('Your workspace','Something needs a moment','Your saved records are preserved.')+`<div class="notice warning">${esc(error.message)}</div><div class="detail-actions">${button('Retry','retry')}<a href="/classic" class="button">Open existing tools</a></div>`;}
