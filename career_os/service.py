@@ -370,7 +370,9 @@ class CareerService:
         review_week=[item for item in suitable if item['recommendation']['bucket']=='Worth reviewing this week']
         already_applied=[item for item in items if item['stage'] in ('Applied','Assessment','Interview','Offer')]
         deadlines=self.calendar();groups={'today':[],'week':[],'month':[],'later':[]}
-        for event in deadlines:
+        current_instant=datetime.now(timezone.utc)
+        upcoming=[event for event in deadlines if not event['deadline'].get('utc') or datetime.fromisoformat(event['deadline']['utc'])>=current_instant]
+        for event in upcoming:
             delta=(date.fromisoformat(event['deadline'].get('local_date') or event['deadline']['date'])-day).days
             if delta==0:groups['today'].append(event)
             elif 0<delta<=7:groups['week'].append(event)
@@ -386,7 +388,7 @@ class CareerService:
         # Legacy mail is counted as provisional metadata, never as verified employer outcomes.
         inbox=self.optional_rows('career_mail_messages',"SELECT * FROM career_mail_messages WHERE direction='inbound' AND reviewed=0 ORDER BY updated_at DESC LIMIT 100")
         priorities=[{'kind':'review','count':len(suitable),'title':'Suitable opportunities to review','action':'discover','filter':'actionable'},
-            {'kind':'deadline','count':sum(0<=(date.fromisoformat(event['deadline'].get('local_date') or event['deadline']['date'])-day).days<=2 for event in deadlines),'title':'Recorded deadlines in the next 2 days','action':'calendar'},
+            {'kind':'deadline','count':sum(0<=(date.fromisoformat(event['deadline'].get('local_date') or event['deadline']['date'])-day).days<=2 for event in upcoming),'title':'Recorded deadlines in the next 2 days','action':'calendar'},
             {'kind':'inbox','count':sum(row['category'] in ('Possible interview','Possible assessment','Possible offer','Possible human reply') for row in inbox),'title':'Inbox signals needing your review','action':'inbox'},
             {'kind':'followup','count':len(followups),'title':'Follow-ups to consider','action':'applications'}]
         return {'date':daystring,'priorities':priorities,'recommended':suitable[:4],

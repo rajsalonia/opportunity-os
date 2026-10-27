@@ -1,4 +1,8 @@
 """Version 3 behavioral checks with isolated data and no real email/application sends."""
+import os
+os.environ.setdefault("APP_PASSWORD", "test-secret-not-a-real-password")
+os.environ.setdefault("SESSION_SECRET", "test-session-secret-for-test-only")
+os.environ.setdefault("HTTPS_ONLY", "false")
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -74,6 +78,15 @@ def test_holiday_and_learning_benefits_are_not_contract_duration_or_pay():
     f=extract({'title':'Software Intern','description':'Internship duration: 12 weeks. Salary $50 per hour.','url':'https://example.org'})
     assert '12 weeks' in f['fields']['duration']['value']
     assert f['fields']['currency']['value'] is None
+
+def test_today_does_not_present_an_elapsed_instant_as_upcoming(service,monkeypatch):
+    from datetime import timedelta
+    past=(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()
+    event={'id':'past','opportunity_key':'','title':'Elapsed deadline','kind':'Application deadline','deadline':parse_deadline(past,'UTC','Employer stated')}
+    monkeypatch.setattr(service,'calendar',lambda:[event])
+    result=service.today()
+    assert result['deadlines']['today']==[]
+    assert next(p for p in result['priorities'] if p['kind']=='deadline')['count']==0
 
 def test_conservative_dedupe_tracking_parameters_and_separate_roles(service):
     a=add(service,'one');b=add(service,'two')
