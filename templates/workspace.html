@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/static/workspace.css?v=4.0.0">
   <link rel="stylesheet" href="/static/glass.css?v=4.0.0">
   <script src="/static/workspace.js?v=4.0.0" defer></script>
+  <script src="/static/outreach.js?v=4.0.0" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#content">Skip to workspace</a>
@@ -15,7 +16,7 @@
   <a class="brand" href="#today"><span class="brand-mark" aria-hidden="true">o<span>↗</span></span><span>opportunity<span class="brand-os"> / os</span></span></a>
   <div class="workspace-label"><span class="workspace-label-line"></span> YOUR COMMAND CENTER <span class="workspace-label-line"></span></div>
   <nav id="primary-nav" aria-label="Primary sections">
-    {% for id, icon, label in [('today','sun','Today'),('discover','compass','Discover'),('saved','bookmark','Saved'),('applications','briefcase-business','Applications'),('inbox','inbox','Inbox'),('calendar','calendar-days','Calendar')] %}
+    {% for id, icon, label in [('today','sun','Today'),('discover','compass','Discover'),('saved','bookmark','Saved'),('applications','briefcase-business','Applications'),('inbox','inbox','Inbox'),('calendar','calendar-days','Calendar'),('outreach','send','AI Outreach')] %}
     <a href="#{{ id }}" data-nav="{{ id }}"><svg class="icon" aria-hidden="true"><use href="/static/vendor/lucide/icons.svg#{{ icon }}"/></svg><span>{{ label }}</span><span class="nav-count" id="count-{{ id }}"></span></a>
     {% endfor %}
   </nav>

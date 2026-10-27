@@ -211,11 +211,11 @@ async function renderSettings(ticket){
   }
 }
 async function route(){
-  const [page,sub]=location.hash.slice(1).split('/');state.page=['today','discover','saved','applications','inbox','calendar','settings'].includes(page)?page:'today';if(state.page==='settings'&&sub)state.settings=sub;
+  const [page,sub]=location.hash.slice(1).split('/');state.page=['today','discover','saved','applications','inbox','calendar','outreach','settings'].includes(page)?page:'today';if(state.page==='settings'&&sub)state.settings=sub;if(state.page==='outreach'&&sub)state.outreachTab=sub;
   const ticket=++state.request;$('#content').dataset.page=state.page;$('[data-nav]').forEach(a=>{if(a.dataset.nav===state.page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   $('#breadcrumb').innerHTML=`Workspace <span>/</span> ${state.page[0].toUpperCase()+state.page.slice(1)}`;$('#sidebar').classList.remove('open');$('.mobile-menu').setAttribute('aria-expanded','false');
   $('#content').innerHTML='<div class="loading-state" role="status">Loading your '+esc(state.page)+'…</div>';
-  try{if(state.page==='today')await renderToday(ticket);else if(['discover','saved','applications'].includes(state.page))await renderOpportunities(ticket);else if(state.page==='inbox')await renderInbox(ticket);else if(state.page==='calendar')await renderCalendar(ticket);else await renderSettings(ticket);}catch(error){if(ticket===state.request)$('#content').innerHTML=heading('Your workspace','Something needs a moment','Your saved records are preserved.')+`<div class="notice warning">${esc(error.message)}</div><div class="detail-actions">${button('Retry','retry')}<a href="/classic" class="button">Open existing tools</a></div>`;}
+  try{if(state.page==='today')await renderToday(ticket);else if(['discover','saved','applications'].includes(state.page))await renderOpportunities(ticket);else if(state.page==='inbox')await renderInbox(ticket);else if(state.page==='calendar')await renderCalendar(ticket);else if(state.page==='outreach'&&window.renderOutreach)await window.renderOutreach(ticket);else await renderSettings(ticket);}catch(error){if(ticket===state.request)$('#content').innerHTML=heading('Your workspace','Something needs a moment','Your saved records are preserved.')+`<div class="notice warning">${esc(error.message)}</div><div class="detail-actions">${button('Retry','retry')}<a href="/classic" class="button">Open existing tools</a></div>`;}
 }
 function navigate(page,filter){state.filters=filter?{eligibility:filter}:{};state.pageNumber=1;if(location.hash==='#'+page)route();else location.hash=page;}
 async function updateOpportunity(key,changes){const item=await mutate('opportunities/'+encodeURIComponent(key),changes,'PATCH');remember([item]);return item;}
@@ -250,6 +250,7 @@ document.addEventListener('click',async event=>{
   const close=event.target.closest('[data-close]');if(close){close.closest('dialog').close();return;}
   const detailTab=event.target.closest('[data-detail-tab]');if(detailTab){state.detailTab=detailTab.dataset.detailTab;renderDetail();return;}
   const settings=event.target.closest('[data-settings-tab]');if(settings){state.settings=settings.dataset.settingsTab;location.hash='settings/'+state.settings;return;}
+  const outreachTab=event.target.closest('[data-outreach-tab]');if(outreachTab){state.outreachTab=outreachTab.dataset.outreachTab;location.hash='outreach/'+state.outreachTab;return;}
   const calendarView=event.target.closest('[data-calendar-view]');if(calendarView){state.calendarView=calendarView.dataset.calendarView;route();return;}
   const calendarDay=event.target.closest('[data-calendar-day]');if(calendarDay){state.calendarDate=new Date(calendarDay.dataset.calendarDay+'T12:00:00');state.calendarView='day';route();return;}
   const prompt=event.target.closest('[data-question]');if(prompt){$('#assistant-question').value=prompt.dataset.question;ask(prompt.dataset.question);return;}
