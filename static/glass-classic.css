@@ -1,0 +1,153 @@
+/* Opportunity OS — Aurora Glass legacy/advanced workspace skin.
+   Keeps every existing ID, interaction, login, and advanced tool intact. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root {
+  --bg:#090f20;--sidebar:rgba(16,25,47,.87);
+  --surface:rgba(22,31,56,.81);--surface-raised:rgba(35,46,74,.78);
+  --surface-hover:rgba(45,58,87,.89);--border:rgba(191,204,247,.16);
+  --border-soft:rgba(178,198,244,.12);--text:#edf3ff;
+  --muted:#a5b5ce;--subtle:#8397b7;--blue:#aca9ff;--violet:#cab1ff;
+  --cyan:#7bdedb;--green:#83d8bd;--amber:#ebc790;--danger:#ffaab8;
+  --sidebar-width:270px;--radius:20px;
+  --font:'DM Sans',Inter,system-ui,sans-serif;--heading:Manrope,'DM Sans',sans-serif
+}
+body {background:radial-gradient(ellipse at 75% 0%,rgba(113,81,229,.18),transparent 45%),radial-gradient(ellipse at 12% 80%,rgba(39,162,199,.12),transparent 45%),var(--bg);background-attachment:fixed;-webkit-font-smoothing:antialiased}
+h1,h2,h3 {letter-spacing:-.045em;font-weight:750}
+button:focus-visible,a:focus-visible,input:focus-visible {outline:3px solid #beb7ff;outline-offset:3px}
+.sidebar {
+  inset:14px auto 14px 14px;width:245px;
+  border:1px solid rgba(205,222,255,.13);border-radius:23px;
+  padding:23px 14px 14px;background:var(--sidebar);
+  backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);
+  box-shadow:0 20px 65px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.09)
+}
+.sidebar>.brand {margin:0 9px 27px;font-size:19px}
+.sidebar>.brand img {padding:5px;background:linear-gradient(135deg,#7565e8,#51b7d7);border-radius:11px;box-shadow:0 8px 23px rgba(110,94,228,.22)}
+.brand-os {color:#b7b1ff}
+.workspace-label {
+  border-color:var(--border);background:linear-gradient(120deg,rgba(135,111,236,.13),rgba(64,161,213,.07));
+  border-radius:13px;padding:12px 9px
+}
+.tiny-avatar,.avatar {background:linear-gradient(135deg,#6958e8,#37aecb);color:#fff;border-color:rgba(255,255,255,.2);border-radius:10px}
+.nav-heading {font-size:9px!important;letter-spacing:.18em!important;color:var(--subtle)!important}
+.nav-links a {
+  border:1px solid transparent;border-radius:12px;
+  transition:background .2s,border-color .2s,color .2s,transform .2s
+}
+.nav-links a:hover {transform:translateX(2px);background:rgba(134,117,240,.13);color:#f0f2ff}
+.nav-links a.active,.nav-links a[aria-current=page] {background:rgba(133,113,244,.16);border-color:rgba(156,140,255,.18);color:#d4c7ff;box-shadow:inset 3px 0 0 #a59aff}
+.nav-count {border-radius:8px;background:rgba(133,119,242,.17);color:#c8c2ff}
+.focus-card {border:1px solid var(--border);background:linear-gradient(135deg,rgba(141,117,247,.18),rgba(43,168,198,.09));border-radius:16px}
+.settings-link,.sidebar-profile {border-radius:12px}
+.topbar {
+  top:14px;margin:14px 22px 0;height:70px;
+  padding:0 20px;border:1px solid rgba(208,221,255,.13);
+  border-radius:18px;background:rgba(18,27,50,.87);
+  box-shadow:0 13px 50px rgba(0,0,0,.22);
+  backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)
+}
+.breadcrumb strong {font-size:12px;font-weight:700;color:var(--text)}
+.global-search {width:315px;min-height:42px;background:rgba(131,147,190,.09);border-color:var(--border);border-radius:11px}
+.global-search input {color:var(--text);font-size:12px}
+.global-search:focus-within {border-color:#aca2ff;box-shadow:0 0 0 3px rgba(167,153,255,.12)}
+.global-search kbd {font-size:10px;border-radius:6px}
+.integration-indicator {font-weight:650;color:var(--muted)}
+#main-content {max-width:1500px;margin:auto}
+.page-heading {position:relative}
+.page-heading h1 {font-size:clamp(31px,3vw,42px);letter-spacing:-.055em}
+.page-heading p {color:var(--muted)}
+#page-overview > .page-heading {
+  position:relative;isolation:isolate;overflow:hidden;
+  background:radial-gradient(ellipse at 95% 0%,rgba(109,186,242,.28),transparent 55%),linear-gradient(110deg,#191d4c,#423b91 67%,#2e5481);
+  border:1px solid rgba(188,198,255,.16);border-radius:23px;
+  padding:30px 34px;margin-bottom:22px;
+  box-shadow:0 24px 52px rgba(7,11,34,.22)
+}
+#page-overview > .page-heading:after {
+  content:"✦";position:absolute;right:9%;top:12%;font-size:100px;color:rgba(242,247,255,.12);pointer-events:none
+}
+#page-overview > .page-heading h1 {color:#fff}
+#page-overview > .page-heading p {color:#e0e5ff}
+#page-overview > .page-heading .eyebrow {color:#b9c7ff}
+.panel,.job-card,.metric-card,.stat-card,.radar-card,.action-item,.deadline-row,.daily-brief-card,.source-card,.resume-card,.modal-panel {
+  border:1px solid rgba(204,218,255,.13);
+  background:var(--surface);border-radius:18px;
+  box-shadow:0 14px 38px rgba(0,0,0,.12);
+  backdrop-filter:blur(24px) saturate(1.25);
+  -webkit-backdrop-filter:blur(24px) saturate(1.25)
+}
+.panel {border-radius:21px}
+.daily-command {padding:4px;background:linear-gradient(145deg,rgba(29,41,79,.82),rgba(19,28,52,.88))}
+.daily-command-top h2 {font-weight:800;letter-spacing:-.045em}
+.daily-command-stats>span {background:rgba(128,147,205,.08);border:1px solid var(--border);border-radius:13px}
+.daily-command-stats strong {color:#f4f6ff}
+.daily-brief-card,.job-card,.radar-card {transition:transform .2s,border-color .2s,box-shadow .2s}
+.daily-brief-card:hover,.job-card:hover,.radar-card:hover {
+  border-color:rgba(158,147,255,.38);transform:translateY(-3px);
+  box-shadow:0 24px 43px rgba(0,0,0,.19);background:rgba(33,43,74,.92)
+}
+.panel-heading h2 {font-size:15px;font-weight:800}
+.eyebrow {color:#b7b6ee!important;font-weight:750;letter-spacing:.16em}
+.button {border:1px solid var(--border);border-radius:11px;font-weight:700;min-height:40px;background:rgba(116,135,189,.10);transition:transform .17s,background .17s,box-shadow .17s}
+.button:hover {background:rgba(115,127,197,.22);transform:translateY(-2px)}
+.button.primary {background:linear-gradient(120deg,#7768ec,#6259de 65%,#458ed1);border-color:#9589f9;box-shadow:0 9px 22px rgba(77,74,175,.23)}
+input,select,textarea {border-color:var(--border);background:rgba(120,138,180,.08);border-radius:10px;color:var(--text)}
+input:focus,select:focus,textarea:focus {border-color:#b0a5ff;box-shadow:0 0 0 4px rgba(160,150,248,.14)}
+.badge,.mini-tag {border-radius:99px!important}
+.company-avatar {border:1px solid var(--border);background:rgba(142,121,236,.16);color:#c0b1ff;border-radius:12px}
+.job-card .job-title-button {font-weight:800}
+.job-card-meta,.company-name {color:var(--muted)}
+.job-match {border-radius:11px}
+.panel-footnote {color:var(--muted)}
+.login-layout {
+  background:
+    radial-gradient(ellipse 46% 68% at 77% 40%,rgba(115,94,237,.24),transparent 75%),
+    radial-gradient(ellipse 50% 46% at 5% 96%,rgba(39,159,198,.15),transparent 80%),
+    #090f20
+}
+.login-brand {font-size:21px}
+.login-card {
+  max-width:535px;padding:36px 34px 42px;
+  background:linear-gradient(120deg,rgba(31,40,77,.65),rgba(18,28,52,.52));
+  border:1px solid rgba(200,214,255,.17);border-radius:25px;
+  box-shadow:0 30px 85px rgba(0,0,0,.24);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px)
+}
+.login-card h1 {font-size:clamp(36px,3.5vw,54px);letter-spacing:-.06em;font-weight:800}
+.login-card h1>span {color:#beb3ff}
+.login-card>p {color:#adbcd7;font-size:14px}
+.login-card input {border-radius:11px;background:rgba(124,144,199,.09)}
+.login-card .button.primary {font-size:13px}
+.login-art {opacity:.92;filter:saturate(1.25)}
+dialog,.modal-panel {border:1px solid var(--border);border-radius:20px;background:rgba(23,32,56,.97);backdrop-filter:blur(23px)}
+dialog::backdrop {background:rgba(5,9,23,.7);backdrop-filter:blur(6px)}
+::-webkit-scrollbar {width:9px;height:9px}
+::-webkit-scrollbar-thumb {background:rgba(139,153,199,.25);border:2px solid transparent;background-clip:padding-box;border-radius:20px}
+@supports not ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))) {
+  .sidebar,.topbar,.panel,.job-card,.login-card {background:#17213b}
+}
+@media(max-width:1120px) {
+  :root {--sidebar-width:235px}
+  .sidebar {width:215px;left:10px;top:10px;bottom:10px}
+  .topbar {margin:10px 14px 0}
+}
+@media(max-width:760px) {
+  :root {--sidebar-width:0px}
+  .sidebar {inset:8px auto 8px 8px;width:min(290px,86vw);border-radius:20px;transform:translateX(calc(-100% - 15px))}
+  .sidebar.open,.sidebar.is-open {transform:translateX(0)}
+  .topbar {top:8px;height:auto;min-height:64px;margin:8px 9px 0;padding:10px 13px;gap:9px;border-radius:14px}
+  .global-search {width:auto;max-width:175px;min-width:0}
+  .login-layout {padding:20px}
+  .login-card {padding:29px 21px;margin:auto 0}
+  #page-overview > .page-heading {padding:24px 22px;border-radius:19px}
+  #page-overview > .page-heading:after {font-size:65px;right:2%}
+  .daily-command-stats {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .daily-command-list {grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {transition:none!important;animation:none!important}
+  .job-card:hover,.daily-brief-card:hover,.button:hover {transform:none}
+}
+@media(prefers-contrast:more) {
+  .sidebar,.topbar,.panel,.job-card,.login-card {background:#192644;border:2px solid #a9b5d7;backdrop-filter:none}
+}
