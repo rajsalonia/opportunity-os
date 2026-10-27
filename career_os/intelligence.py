@@ -57,6 +57,7 @@ def identity(item):
     if ghid: return 'greenhouse:' + company + ':' + ghid
     if parts.netloc == 'jobs.lever.co': return 'lever:' + parts.path.rstrip('/').removesuffix('/apply').lower()
     if parts.netloc == 'jobs.ashbyhq.com': return 'ashby:' + parts.path.rstrip('/').removesuffix('/application').lower()
+    if 'smartrecruiters.com' in parts.netloc: return 'smartrecruiters:' + parts.path.rstrip('/').lower()
     return url or str(item.get('key'))
 
 def parse_deadline(value, zone=None, provenance='Not disclosed'):

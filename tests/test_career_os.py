@@ -454,3 +454,23 @@ def test_enhanced_search_filtering_modes_batches_and_skills(service):
     # Test extracted skills in search haystack
     items, _ = service.filtered({'q': 'docker'})
     assert any(i['key'] == k1 for i in items)
+
+
+def test_smartrecruiters_identity_deduplication_and_clean_sources(service):
+    # Test identity helper unifies careers.smartrecruiters.com and jobs.smartrecruiters.com
+    id1 = identity({'url': 'https://careers.smartrecruiters.com/AcmeCorp/12345-intern'})
+    id2 = identity({'url': 'https://jobs.smartrecruiters.com/AcmeCorp/12345-intern/'})
+    assert id1 == id2
+    assert id1 == 'smartrecruiters:/acmecorp/12345-intern'
+
+    # Add two records pointing to the same SmartRecruiters posting
+    k1 = add(service, 'sr-one', url='https://careers.smartrecruiters.com/AcmeCorp/999-intern', title='ML Intern', description='Python ML intern.')
+    k2 = add(service, 'sr-two', url='https://jobs.smartrecruiters.com/AcmeCorp/999-intern', title='ML Intern', description='Python ML intern.')
+    
+    snapshot = service.snapshot()
+    matched = [item for item in snapshot if 'smartrecruiters:/acmecorp/999-intern' == identity(item)]
+    assert len(matched) == 1
+    # Verify source records have no duplicate (name, url) pairs
+    sources = matched[0]['source_records']
+    unique_pairs = {(s.get('name'), s.get('url')) for s in sources}
+    assert len(sources) == len(unique_pairs)

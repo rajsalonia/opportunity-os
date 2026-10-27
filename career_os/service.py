@@ -137,7 +137,15 @@ class CareerService:
             existing=grouped.get(group_key)
             if existing:
                 keep,other=(item,existing) if (primary is None and item['key'] in aliases_map.values()) or (item['kind']=='job' and existing['kind']!='job') else (existing,item)
-                keep['source_records']+=other['source_records']
+                combined_sources = keep['source_records'] + other['source_records']
+                seen_src = set()
+                deduped_src = []
+                for s in combined_sources:
+                    s_key = (s.get('name'), s.get('url'))
+                    if s_key not in seen_src:
+                        seen_src.add(s_key)
+                        deduped_src.append(s)
+                keep['source_records'] = deduped_src
                 keep['related_keys']=list(dict.fromkeys(keep.get('related_keys',[keep['key']])+other.get('related_keys',[other['key']])))
                 keep['saved']=keep['saved'] or other['saved']; keep['pinned']=keep['pinned'] or other['pinned']
                 # Preserve an already tracked application when another copy is merely discovered.
